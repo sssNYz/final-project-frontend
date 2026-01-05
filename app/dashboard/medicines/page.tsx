@@ -1,10 +1,12 @@
+
 "use client"
 
 import type { CSSProperties, FormEvent } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { FileText, Pill, Search, Trash2 } from "lucide-react"
 
+import { apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
@@ -66,69 +68,9 @@ const USAGE_LABELS: Record<UsageType, string> = {
   topical: "ยาใช้ภายนอก",
 }
 
-const initialMedicines: MedicineRow[] = [
-  {
-    id: "paracetamol",
-    genericNameTh: "พาราเซตามอล",
-    genericNameEn: "Paracetamol",
-    brandName: "Tylenol",
-    usageType: "oral",
-    imageUrl: "",
-    indications: "บรรเทาอาการปวดและลดไข้",
-    instructions: "รับประทานทุก 4-6 ชั่วโมง เมื่อมีอาการ หรือทำตามคำแนะนำแพทย์",
-    adverseEffects: "อาจมีผื่นคัน หรือพิษต่อตับหากใช้เกินขนาด",
-    contraindications: "ห้ามใช้ในผู้ที่มีประวัติแพ้ยาพาราเซตามอลอย่างรุนแรง",
-    precautions: "ใช้ด้วยความระมัดระวังในผู้ป่วยโรคตับ หรือดื่มแอลกอฮอล์เป็นประจำ",
-    storage: "เก็บที่อุณหภูมิห้อง หลีกเลี่ยงความชื้นและแสงแดด",
-  },
-  {
-    id: "ibuprofen",
-    genericNameTh: "ไอบูโพรเฟน",
-    genericNameEn: "Ibuprofen",
-    brandName: "Nurofen",
-    usageType: "oral",
-    imageUrl: "",
-    indications: "บรรเทาอาการปวดอักเสบ เช่น ปวดข้อ ปวดกล้ามเนื้อ",
-    instructions: "รับประทานพร้อมอาหาร วันละ 3-4 ครั้ง หรือทำตามคำสั่งแพทย์",
-    adverseEffects: "อาจทำให้ปวดท้อง หรือเลือดออกในกระเพาะอาหาร",
-    contraindications: "ห้ามใช้ในผู้ป่วยโรคกระเพาะรุนแรง หรือแพ้ยาในกลุ่ม NSAIDs",
-    precautions: "ใช้ด้วยความระมัดระวังในผู้ป่วยโรคไต โรคหัวใจ หรือผู้สูงอายุ",
-    storage: "เก็บในภาชนะปิดสนิท ห่างจากความร้อนและความชื้น",
-  },
-  {
-    id: "amoxicillin",
-    genericNameTh: "อะม็อกซิซิลลิน",
-    genericNameEn: "Amoxicillin",
-    brandName: "Amoxil",
-    usageType: "oral",
-    imageUrl: "",
-    indications: "รักษาโรคติดเชื้อแบคทีเรีย เช่น ทางเดินหายใจ หรือหูชั้นกลางอักเสบ",
-    instructions: "รับประทานตามแพทย์สั่งให้ครบคอร์ส ไม่ควรหยุดยาเอง",
-    adverseEffects: "อาจมีผื่นคัน ท้องเสีย หรืออาการแพ้ยารุนแรง",
-    contraindications: "ห้ามใช้ในผู้ที่แพ้เพนิซิลลินหรือเบต้าแลคแทม",
-    precautions: "แจ้งแพทย์หากเคยแพ้ยาปฏิชีวนะมาก่อน หรือมีโรคตับ/ไต",
-    storage: "เก็บที่อุณหภูมิห้อง หากเป็นยาน้ำให้เก็บในตู้เย็น",
-  },
-  {
-    id: "loratadine",
-    genericNameTh: "ลอราทาดีน",
-    genericNameEn: "Loratadine",
-    brandName: "Claritin",
-    usageType: "oral",
-    imageUrl: "",
-    indications: "บรรเทาอาการแพ้ เช่น น้ำมูกไหล จาม คันตา",
-    instructions: "รับประทานวันละครั้ง สามารถรับประทานพร้อมหรือไม่พร้อมอาหารก็ได้",
-    adverseEffects: "อาจทำให้ง่วงเล็กน้อย หรือปวดศีรษะ",
-    contraindications: "ห้ามใช้ในผู้ที่แพ้ลอราทาดีนอย่างรุนแรง",
-    precautions: "ใช้ด้วยความระมัดระวังในหญิงตั้งครรภ์ ให้นมบุตร หรือผู้ป่วยโรคตับ",
-    storage: "เก็บในภาชนะปิดสนิท ห่างจากความชื้นและแสงแดดโดยตรง",
-  },
-]
-
 const PAGE_SIZE = 4
 
 type FormState = {
-  imageUrl: string
   genericNameTh: string
   genericNameEn: string
   brandName: string
@@ -142,7 +84,6 @@ type FormState = {
 }
 
 const emptyForm: FormState = {
-  imageUrl: "",
   genericNameTh: "",
   genericNameEn: "",
   brandName: "",
@@ -158,7 +99,7 @@ const emptyForm: FormState = {
 // หน้า Dashboard > ข้อมูลยา
 // ใช้จัดการรายการยาในระบบ (ค้นหา, กรอง, เพิ่ม/แก้ไข/ลบ และดูรายละเอียดของยาแต่ละตัว)
 export default function MedicinesPage() {
-  const [medicines, setMedicines] = useState<MedicineRow[]>(initialMedicines)
+  const [medicines, setMedicines] = useState<MedicineRow[]>([])
   const [usageFilter, setUsageFilter] = useState<"all" | UsageType>("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -167,6 +108,81 @@ export default function MedicinesPage() {
   const [viewingMedicine, setViewingMedicine] = useState<MedicineRow | null>(
     null,
   )
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // โหลดรายการยาจริงจาก API /api/admin/v1/medicine/list
+  async function reloadMedicines() {
+    try {
+      setIsLoading(true)
+      setLoadError(null)
+
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await fetch(
+        apiUrl("/api/admin/v1/medicine/list?page=1&pageSize=1000"),
+        { headers },
+      )
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "โหลดข้อมูลยาไม่สำเร็จ",
+        )
+        setMedicines([])
+        return
+      }
+
+      const items = (data?.items ?? []) as {
+        mediId: number
+        mediThName: string
+        mediEnName: string
+        mediTradeName: string | null
+        mediType: "ORAL" | "TOPICAL"
+        mediPicture?: string | null
+      }[]
+
+      const next: MedicineRow[] = items.map((item) => ({
+        id: String(item.mediId),
+        imageUrl: item.mediPicture ? `/${item.mediPicture}` : undefined,
+        genericNameTh: item.mediThName,
+        genericNameEn: item.mediEnName,
+        brandName: item.mediTradeName ?? "",
+        usageType: item.mediType === "TOPICAL" ? "topical" : "oral",
+        indications: "",
+        instructions: "",
+        adverseEffects: "",
+        contraindications: "",
+        precautions: "",
+        storage: "",
+      }))
+
+      setMedicines(next)
+      setCurrentPage(1)
+    } catch {
+      setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลยา")
+      setMedicines([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    reloadMedicines()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // กรองรายการยาตามประเภทการใช้ (oral/topical) และคำค้นหา
   const filteredMedicines = useMemo(() => {
@@ -210,6 +226,10 @@ export default function MedicinesPage() {
   function openCreateForm() {
     setEditingId("new")
     setFormValues(emptyForm)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   function openEditForm(id: string) {
@@ -217,8 +237,11 @@ export default function MedicinesPage() {
     if (!medicine) return
 
     setEditingId(id)
+    setImagePreview(medicine.imageUrl ?? null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
     setFormValues({
-      imageUrl: medicine.imageUrl ?? "",
       genericNameTh: medicine.genericNameTh,
       genericNameEn: medicine.genericNameEn,
       brandName: medicine.brandName,
@@ -235,6 +258,10 @@ export default function MedicinesPage() {
   function cancelForm() {
     setEditingId(null)
     setFormValues(emptyForm)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   function handleFormChange<K extends keyof FormState>(
@@ -247,11 +274,21 @@ export default function MedicinesPage() {
     }))
   }
 
-  function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, [imagePreview])
+
+  async function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const currentEditingId = editingId
+    const isCreate = currentEditingId === "new"
+
     const data = {
-      imageUrl: formValues.imageUrl.trim(),
       genericNameTh: formValues.genericNameTh.trim(),
       genericNameEn: formValues.genericNameEn.trim(),
       brandName: formValues.brandName.trim(),
@@ -264,33 +301,141 @@ export default function MedicinesPage() {
       storage: formValues.storage.trim(),
     }
 
-    if (!data.genericNameEn || !data.brandName) {
-      window.alert("กรุณากรอกชื่อสามัญยา (อังกฤษ) และชื่อการค้า")
+    // ต้องกรอกชื่อสามัญยา (ไทย/อังกฤษ) อย่างน้อยสำหรับการเพิ่ม/แก้ไข
+    if (!data.genericNameTh || !data.genericNameEn) {
+      window.alert("กรุณากรอกชื่อสามัญยา (ไทย) และชื่อสามัญยา (อังกฤษ)")
       return
     }
 
-    if (editingId === "new" || editingId === null) {
-      const newMedicine: MedicineRow = {
-        id: `${Date.now()}`,
-        ...data,
-      }
-      setMedicines((previous) => [newMedicine, ...previous])
-      setCurrentPage(1)
-    } else {
-      setMedicines((previous) =>
-        previous.map((medicine) =>
-          medicine.id === editingId
-            ? { ...medicine, ...data }
-            : medicine,
-        ),
-      )
-    }
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
 
-    setEditingId(null)
-    setFormValues(emptyForm)
+      const formData = new FormData()
+      formData.set("mediThName", data.genericNameTh)
+      formData.set("mediEnName", data.genericNameEn)
+      if (data.brandName) {
+        formData.set("mediTradeName", data.brandName)
+      }
+      formData.set(
+        "mediType",
+        data.usageType === "topical" ? "TOPICAL" : "ORAL",
+      )
+      if (data.indications) formData.set("mediUse", data.indications)
+      if (data.instructions) formData.set("mediGuide", data.instructions)
+      if (data.adverseEffects) formData.set("mediEffects", data.adverseEffects)
+      if (data.contraindications) {
+        formData.set("mediNoUse", data.contraindications)
+      }
+      if (data.precautions) formData.set("mediWarning", data.precautions)
+      if (data.storage) formData.set("mediStore", data.storage)
+      if (!isCreate && currentEditingId && currentEditingId !== "new") {
+        formData.set("mediId", currentEditingId)
+      }
+
+      const pictureFile =
+        fileInputRef.current?.files && fileInputRef.current.files[0]
+          ? fileInputRef.current.files[0]
+          : null
+      if (pictureFile) {
+        formData.set("picture", pictureFile)
+      }
+
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await fetch(
+        apiUrl(
+          isCreate
+            ? "/api/admin/v1/medicine/create"
+            : "/api/admin/v1/medicine/update",
+        ),
+        {
+          method: isCreate ? "POST" : "PATCH",
+          headers,
+          body: formData,
+        },
+      )
+
+      const payload = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        const message =
+          (payload && (payload.error as string | undefined)) ||
+          "ไม่สามารถบันทึกข้อมูลยาได้"
+        window.alert(message)
+        return
+      }
+
+      type MedicinePayload = {
+        mediId: number
+        mediThName: string
+        mediEnName: string
+        mediTradeName: string | null
+        mediType: "ORAL" | "TOPICAL"
+        mediUse?: string | null
+        mediGuide?: string | null
+        mediEffects?: string | null
+        mediNoUse?: string | null
+        mediWarning?: string | null
+        mediStore?: string | null
+        mediPicture?: string | null
+      }
+
+      const apiMedicine = (payload?.medicine ?? null) as
+        | MedicinePayload
+        | null
+
+      if (!apiMedicine) {
+        window.alert("บันทึกข้อมูลยาไม่สำเร็จ: รูปแบบข้อมูลไม่ถูกต้อง")
+        return
+      }
+
+      const mapped: MedicineRow = {
+        id: String(apiMedicine.mediId),
+        imageUrl: apiMedicine.mediPicture
+          ? `/${apiMedicine.mediPicture}`
+          : undefined,
+        genericNameTh: apiMedicine.mediThName,
+        genericNameEn: apiMedicine.mediEnName,
+        brandName: apiMedicine.mediTradeName ?? "",
+        usageType: apiMedicine.mediType === "TOPICAL" ? "topical" : "oral",
+        indications: apiMedicine.mediUse ?? data.indications,
+        instructions: apiMedicine.mediGuide ?? data.instructions,
+        adverseEffects: apiMedicine.mediEffects ?? data.adverseEffects,
+        contraindications: apiMedicine.mediNoUse ?? data.contraindications,
+        precautions: apiMedicine.mediWarning ?? data.precautions,
+        storage: apiMedicine.mediStore ?? data.storage,
+      }
+
+      if (isCreate) {
+        setMedicines((previous) => [mapped, ...previous])
+        setCurrentPage(1)
+      } else if (currentEditingId && currentEditingId !== "new") {
+        setMedicines((previous) =>
+          previous.map((medicine) =>
+            medicine.id === currentEditingId ? mapped : medicine,
+          ),
+        )
+      }
+
+      setEditingId(null)
+      setFormValues(emptyForm)
+      setImagePreview(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch (error) {
+      console.error("Error saving medicine:", error)
+      window.alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลยา")
+    }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const medicine = medicines.find((item) => item.id === id)
     const label =
       medicine &&
@@ -304,12 +449,45 @@ export default function MedicinesPage() {
 
     if (!confirmed) return
 
-    setMedicines((previous) =>
-      previous.filter((medicine) => medicine.id !== id),
-    )
-    setViewingMedicine((previous) =>
-      previous && previous.id === id ? null : previous,
-    )
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await fetch(
+        apiUrl(
+          `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
+        ),
+        {
+          method: "DELETE",
+          headers,
+        },
+      )
+
+      const payload = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        const message =
+          (payload && (payload.error as string | undefined)) ||
+          "ไม่สามารถลบข้อมูลยาได้"
+        window.alert(message)
+        return
+      }
+
+      await reloadMedicines()
+      setViewingMedicine((previous) =>
+        previous && previous.id === id ? null : previous,
+      )
+    } catch (error) {
+      console.error("Error deleting medicine:", error)
+      window.alert("เกิดข้อผิดพลาดในการลบข้อมูลยา")
+    }
   }
 
   function openViewDetails(id: string) {
@@ -341,33 +519,118 @@ export default function MedicinesPage() {
                 {editingId && (
                   <form
                     onSubmit={handleFormSubmit}
-                    className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700"
+                    className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
                   >
                     <div className="mb-2 font-semibold text-slate-800">
                       {editingId === "new"
                         ? "เพิ่มข้อมูลยาใหม่"
                         : "แก้ไขข้อมูลยา"}
                     </div>
-                    <div className="grid gap-3 md:grid-cols-[1.6fr_3fr]">
+                    <div className="grid gap-4 md:grid-cols-[1.5fr_3fr]">
                       <div className="space-y-3">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-2">
                           <label className="text-xs text-slate-600">
-                            ลิงก์รูปภาพยา
+                            รูปภาพยา
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                              {imagePreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={imagePreview}
+                                  alt="รูปภาพยา"
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <Pill className="h-8 w-8 text-slate-400" />
+                              )}
+                            </div>
+                          </div>
+                          <Input
+                            type="file"
+                            accept="image/png"
+                            ref={fileInputRef}
+                            onChange={(event) => {
+                              const files = event.target.files
+                              if (!files || files.length === 0) {
+                                return
+                              }
+
+                              const file = files[0]
+
+                              if (file.type !== "image/png") {
+                                window.alert(
+                                  "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
+                                )
+                                event.target.value = ""
+                                return
+                              }
+
+                              const url = URL.createObjectURL(file)
+                              setImagePreview((previous) => {
+                                if (previous && previous.startsWith("blob:")) {
+                                  URL.revokeObjectURL(previous)
+                                }
+                                return url
+                              })
+                            }}
+                            className="h-9 rounded-md border border-slate-200 bg-white text-xs file:mr-2 file:rounded-md file:border-none file:bg-slate-800 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-900"
+                          />
+                          <p className="text-[11px] text-slate-400">
+                            รองรับเฉพาะไฟล์รูปภาพนามสกุล PNG
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              ชื่อสามัญทางยาภาษาไทย
+                            </label>
+                            <Input
+                              value={formValues.genericNameTh}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "genericNameTh",
+                                  event.target.value,
+                                )
+                              }
+                              className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                              placeholder="เช่น พาราเซตามอล"
+                            />
+                          </div>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              ชื่อสามัญทางยาภาษาอังกฤษ
+                            </label>
+                            <Input
+                              value={formValues.genericNameEn}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "genericNameEn",
+                                  event.target.value,
+                                )
+                              }
+                              className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                              placeholder="เช่น Paracetamol"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            ชื่อการค้ายา
                           </label>
                           <Input
-                            value={formValues.imageUrl}
+                            value={formValues.brandName}
                             onChange={(event) =>
                               handleFormChange(
-                                "imageUrl",
+                                "brandName",
                                 event.target.value,
                               )
                             }
-                            className="h-9  bg-white text-xs"
-                            placeholder="เช่น https://.../medicine.png"
+                            className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                            placeholder="เช่น Tylenol"
                           />
-                          <p className="text-[11px] text-slate-400">
-                            ใช้ URL เพื่อทดสอบการแสดงรูปภาพยาได้ และแก้ไขในภายหลัง
-                          </p>
                         </div>
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-slate-600">
@@ -382,13 +645,11 @@ export default function MedicinesPage() {
                               )
                             }
                           >
-                            <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
-                              <SelectValue placeholder="รูปแบบการใช้" />
+                            <SelectTrigger className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-800">
+                              <SelectValue placeholder="เลือกรูปแบบการใช้ยา" />
                             </SelectTrigger>
                             <SelectContent align="start">
-                              <SelectItem value="oral">
-                                ยากิน
-                              </SelectItem>
+                              <SelectItem value="oral">ยากิน</SelectItem>
                               <SelectItem value="topical">
                                 ยาใช้ภายนอก
                               </SelectItem>
@@ -396,158 +657,108 @@ export default function MedicinesPage() {
                           </Select>
                         </div>
                       </div>
-                      <div className="space-y-3">
-                        <div className="grid gap-3 md:grid-cols-3">
-                          <div className="flex min-w-0 flex-col gap-1 md:col-span-1">
-                            <label className="text-xs text-slate-600">
-                              ชื่อสามัญยา (ไทย)
-                            </label>
-                            <Input
-                              value={formValues.genericNameTh}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "genericNameTh",
-                                  event.target.value,
-                                )
-                              }
-                              className="h-9 bg-white text-xs"
-                              placeholder="เช่น พาราเซตามอล"
-                            />
-                          </div>
-                          <div className="flex min-w-0 flex-col gap-1 md:col-span-1">
-                            <label className="text-xs text-slate-600">
-                              ชื่อสามัญยา (อังกฤษ)
-                            </label>
-                            <Input
-                              value={formValues.genericNameEn}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "genericNameEn",
-                                  event.target.value,
-                                )
-                              }
-                              className="h-9 bg-white text-xs"
-                              placeholder="เช่น Paracetamol"
-                            />
-                          </div>
-                          <div className="flex min-w-0 flex-col gap-1 md:col-span-1">
-                            <label className="text-xs text-slate-600">
-                              ชื่อการค้ายา
-                            </label>
-                            <Input
-                              value={formValues.brandName}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "brandName",
-                                  event.target.value,
-                                )
-                              }
-                              className="h-9 bg-white text-xs"
-                              placeholder="เช่น Tylenol"
-                            />
-                          </div>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            ข้อบ่งใช้
+                          </label>
+                          <textarea
+                            value={formValues.indications}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "indications",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="อธิบายข้อบ่งใช้ของยา เช่น ลดไข้ บรรเทาอาการปวดศีรษะ"
+                          />
                         </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              ข้อบ่งใช้
-                            </label>
-                            <textarea
-                              value={formValues.indications}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "indications",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="อธิบายข้อบ่งใช้ของยา เช่น ลดไข้ บรรเทาอาการปวดศีรษะ"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              คำแนะนำการใช้ยา
-                            </label>
-                            <textarea
-                              value={formValues.instructions}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "instructions",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="วิธีการใช้ยา เวลาในการรับประทาน และข้อควรปฏิบัติ"
-                            />
-                          </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            คำแนะนำการใช้ยา
+                          </label>
+                          <textarea
+                            value={formValues.instructions}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "instructions",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="วิธีการใช้ยา เวลาในการรับประทาน และข้อควรปฏิบัติ"
+                          />
                         </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              อาการไม่พึงประสงค์จากการใช้ยา
-                            </label>
-                            <textarea
-                              value={formValues.adverseEffects}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "adverseEffects",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="เช่น คลื่นไส้ ผื่นคัน เวียนศีรษะ"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              ข้อห้ามใช้
-                            </label>
-                            <textarea
-                              value={formValues.contraindications}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "contraindications",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="เช่น ห้ามใช้ในผู้ที่เคยแพ้ยานี้อย่างรุนแรง"
-                            />
-                          </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            อาการไม่พึงประสงค์จากการใช้ยา
+                          </label>
+                          <textarea
+                            value={formValues.adverseEffects}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "adverseEffects",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="เช่น คลื่นไส้ ผื่นคัน เวียนศีรษะ"
+                          />
                         </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              ข้อควรระวังในการใช้
-                            </label>
-                            <textarea
-                              value={formValues.precautions}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "precautions",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="เช่น ใช้ด้วยความระมัดระวังในผู้ป่วยโรคตับหรือไต"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <label className="text-xs text-slate-600">
-                              การเก็บรักษา
-                            </label>
-                            <textarea
-                              value={formValues.storage}
-                              onChange={(event) =>
-                                handleFormChange(
-                                  "storage",
-                                  event.target.value,
-                                )
-                              }
-                              className="min-h-[60px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                              placeholder="เช่น เก็บที่อุณหภูมิห้อง หลีกเลี่ยงความชื้นและแสงแดด"
-                            />
-                          </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            ข้อห้ามใช้
+                          </label>
+                          <textarea
+                            value={formValues.contraindications}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "contraindications",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="เช่น ห้ามใช้ในผู้ที่เคยแพ้ยานี้อย่างรุนแรง"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            ข้อควรระวังในการใช้
+                          </label>
+                          <textarea
+                            value={formValues.precautions}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "precautions",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="เช่น ใช้ด้วยความระมัดระวังในผู้ป่วยโรคตับหรือไต"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-slate-600">
+                            การเก็บรักษา
+                          </label>
+                          <textarea
+                            value={formValues.storage}
+                            onChange={(event) =>
+                              handleFormChange(
+                                "storage",
+                                event.target.value,
+                              )
+                            }
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                            placeholder="เช่น เก็บที่อุณหภูมิห้อง หลีกเลี่ยงความชื้นและแสงแดด"
+                          />
                         </div>
                       </div>
                     </div>
@@ -556,7 +767,7 @@ export default function MedicinesPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-full px-4 text-xs"
+                        className="rounded-md px-4 text-xs"
                         onClick={cancelForm}
                       >
                         ยกเลิก
@@ -564,7 +775,7 @@ export default function MedicinesPage() {
                       <Button
                         type="submit"
                         size="sm"
-                        className="rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
+                        className="rounded-md bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
                       >
                         บันทึกข้อมูลยา
                       </Button>
@@ -629,11 +840,22 @@ export default function MedicinesPage() {
                   </Button>
                 </div>
                 <div className="text-sm text-slate-600">
-                  พบข้อมูลยา{" "}
-                  <span className="font-semibold text-slate-800">
-                    {filteredMedicines.length}
-                  </span>{" "}
-                  รายการ
+                  {isLoading ? (
+                    <span>กำลังโหลดข้อมูลยา...</span>
+                  ) : (
+                    <>
+                      พบข้อมูลยา{" "}
+                      <span className="font-semibold text-slate-800">
+                        {filteredMedicines.length}
+                      </span>{" "}
+                      รายการ
+                    </>
+                  )}
+                  {loadError && (
+                    <span className="ml-2 text-xs text-red-500">
+                      {loadError}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
