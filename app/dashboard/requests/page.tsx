@@ -182,17 +182,14 @@ export default function RequestsPage() {
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
 
-  const filteredRequests = useMemo(() => {
+  // ฟิลเตอร์หลักตามหมวดหมู่, อีเมล, และช่วงวันที่ (ยังไม่ใช้สถานะ)
+  const baseFilteredRequests = useMemo(() => {
     const search = searchEmail.trim().toLowerCase()
 
     return requests.filter((request) => {
       const matchesCategory =
         categoryFilter === "all" ||
         request.category === categoryFilter
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        request.status === statusFilter
 
       const matchesSearch =
         search.length === 0 ||
@@ -210,13 +207,20 @@ export default function RequestsPage() {
 
       return (
         matchesCategory &&
-        matchesStatus &&
         matchesSearch &&
         afterFrom &&
         beforeTo
       )
     })
-  }, [requests, categoryFilter, statusFilter, searchEmail, fromDate, toDate])
+  }, [requests, categoryFilter, searchEmail, fromDate, toDate])
+
+  // ฟิลเตอร์ตามสถานะเฉพาะสำหรับข้อมูลที่แสดงในตาราง
+  const filteredRequests = useMemo(() => {
+    if (statusFilter === "all") return baseFilteredRequests
+    return baseFilteredRequests.filter(
+      (request) => request.status === statusFilter,
+    )
+  }, [baseFilteredRequests, statusFilter])
 
   const {
     totalPages,
@@ -226,13 +230,15 @@ export default function RequestsPage() {
     rejectedCount,
     completedCount,
   } = useMemo(() => {
-    const pending = filteredRequests.filter(
+    // นับจำนวนคำร้องตามสถานะจากชุด baseFilteredRequests
+    // (ตัวเลขสรุปสถานะไม่ถูกเปลี่ยนตาม statusFilter)
+    const pending = baseFilteredRequests.filter(
       (item) => item.status === "pending",
     ).length
-    const rejected = filteredRequests.filter(
+    const rejected = baseFilteredRequests.filter(
       (item) => item.status === "rejected",
     ).length
-    const completed = filteredRequests.filter(
+    const completed = baseFilteredRequests.filter(
       (item) => item.status === "completed",
     ).length
 
@@ -255,7 +261,7 @@ export default function RequestsPage() {
       rejectedCount: rejected,
       completedCount: completed,
     }
-  }, [filteredRequests, currentPage])
+  }, [filteredRequests, baseFilteredRequests, currentPage])
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
@@ -408,80 +414,75 @@ export default function RequestsPage() {
 
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-slate-800">
-                  รายการคำร้อง
-                </CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-semibold text-slate-800">
+                    รายการคำร้อง
+                  </CardTitle>
+                  <div className="flex items-center gap-2 text-[11px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter((current) =>
+                          current === "pending" ? "all" : "pending",
+                        )
+                        setCurrentPage(1)
+                      }}
+                      aria-pressed={statusFilter === "pending"}
+                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
+                        statusFilter === "pending"
+                          ? "border-orange-700 bg-orange-600 text-white shadow-sm"
+                          : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
+                      }`}
+                    >
+                      <span className="text-xs">รอยืนยัน</span>
+                      <span className="text-sm font-bold">
+                        {pendingCount}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter((current) =>
+                          current === "rejected" ? "all" : "rejected",
+                        )
+                        setCurrentPage(1)
+                      }}
+                      aria-pressed={statusFilter === "rejected"}
+                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
+                        statusFilter === "rejected"
+                          ? "border-red-700 bg-red-600 text-white shadow-sm"
+                          : "border-red-500 bg-red-500 text-red-50 hover:bg-red-600"
+                      }`}
+                    >
+                      <span className="text-xs">ปฏิเสธ</span>
+                      <span className="text-sm font-bold">
+                        {rejectedCount}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter((current) =>
+                          current === "completed" ? "all" : "completed",
+                        )
+                        setCurrentPage(1)
+                      }}
+                      aria-pressed={statusFilter === "completed"}
+                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
+                        statusFilter === "completed"
+                          ? "border-emerald-700 bg-emerald-600 text-white shadow-sm"
+                          : "border-emerald-500 bg-emerald-500 text-emerald-50 hover:bg-emerald-600"
+                      }`}
+                    >
+                      <span className="text-xs">เสร็จสิ้น</span>
+                      <span className="text-sm font-bold">
+                        {completedCount}
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3 pt-1">
-                <div className="grid gap-3 text-xs font-semibold sm:grid-cols-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter((current) =>
-                        current === "pending" ? "all" : "pending",
-                      )
-                      setCurrentPage(1)
-                    }}
-                    aria-pressed={statusFilter === "pending"}
-                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
-                      statusFilter === "pending"
-                        ? "border-orange-500 bg-orange-100 text-orange-800 shadow-sm"
-                        : "border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-400 hover:bg-orange-100"
-                    }`}
-                  >
-                    <span className="text-lg font-bold leading-tight">
-                      {pendingCount}
-                    </span>
-                    <span className="mt-1 text-[11px] leading-tight">
-                      รอยืนยัน
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter((current) =>
-                        current === "rejected" ? "all" : "rejected",
-                      )
-                      setCurrentPage(1)
-                    }}
-                    aria-pressed={statusFilter === "rejected"}
-                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
-                      statusFilter === "rejected"
-                        ? "border-red-500 bg-red-100 text-red-800 shadow-sm"
-                        : "border-red-200 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100"
-                    }`}
-                  >
-                    <span className="text-lg font-bold leading-tight">
-                      {rejectedCount}
-                    </span>
-                    <span className="mt-1 text-[11px] leading-tight">
-                      ปฏิเสธ
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStatusFilter((current) =>
-                        current === "completed" ? "all" : "completed",
-                      )
-                      setCurrentPage(1)
-                    }}
-                    aria-pressed={statusFilter === "completed"}
-                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-3 transition ${
-                      statusFilter === "completed"
-                        ? "border-emerald-500 bg-emerald-100 text-emerald-800 shadow-sm"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-100"
-                    }`}
-                  >
-                    <span className="text-lg font-bold leading-tight">
-                      {completedCount}
-                    </span>
-                    <span className="mt-1 text-[11px] leading-tight">
-                      เสร็จสิ้น
-                    </span>
-                  </button>
-                </div>
-
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   <Table>
                     <TableHeader>
