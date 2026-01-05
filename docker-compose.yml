@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: final-project-frontend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=http://82.26.104.199:3000
+    restart: unless-stopped
+    networks:
+      - frontend-network
+
+networks:
+  frontend-network:
+    driver: bridge
+
