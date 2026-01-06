@@ -166,6 +166,7 @@ function formatDisplayDate(isoDate: string) {
   return `${day}.${month}.${year.slice(-2)}`
 }
 
+// คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
 export default function RequestsPage() {
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)

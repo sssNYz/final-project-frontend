@@ -2,6 +2,7 @@ import { Suspense } from "react"
 
 import { OTPForm } from "@/components/otp-form"
 
+// หน้า /otp สำหรับกรอกรหัสยืนยัน 6 หลักจากอีเมล
 export default function OTPPage() {
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">

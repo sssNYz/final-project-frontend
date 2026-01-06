@@ -1,5 +1,6 @@
 import { SignupForm } from "@/components/signup-form"
 
+// หน้า /signup สำหรับสร้างบัญชีผู้ดูแลระบบใหม่
 export default function SignupPage() {
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">

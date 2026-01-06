@@ -14,6 +14,7 @@ import {
 import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+// ฟอร์มล็อกอินแอดมิน อ่าน token จาก API แล้วเก็บใน localStorage
 export function LoginForm({
   className,
   ...props
@@ -24,6 +25,7 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
+  // จัดการ submit ฟอร์มล็อกอิน และนำผู้ใช้ไปหน้า Dashboard
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)

@@ -24,6 +24,7 @@ type Props = {
   onDeleteSelected?: (names: string[]) => void
 }
 
+// ตารางสรุปปริมาณการใช้งานต่อบัญชี พร้อมแบ่งหน้าและเลือกหลายรายการได้
 export function AccountUsageTable({
   rows,
   pageSize = 5,

@@ -19,6 +19,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 
+// ฟอร์มกรอกรหัส OTP และ sync ข้อมูลแอดมินหลังยืนยันสำเร็จ
 export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -34,6 +35,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     }
   }, [email, router])
 
+  // ตรวจสอบรูปแบบ OTP แล้วเรียก API verifyOtp และ sync-admin
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)

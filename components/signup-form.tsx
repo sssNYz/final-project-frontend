@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+// ฟอร์มสมัครบัญชีผู้ดูแลระบบใหม่ ส่งข้อมูลไป API /signup
 export function SignupForm({
   className,
   ...props
@@ -31,6 +32,7 @@ export function SignupForm({
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
+  // ตรวจสอบรหัสผ่านและส่งคำขอสมัครไปยัง API
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)

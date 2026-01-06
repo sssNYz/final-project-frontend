@@ -282,6 +282,7 @@ export default function MedicinesPage() {
     }
   }, [imagePreview])
 
+  // จัดการ submit ฟอร์มเพิ่ม/แก้ไขข้อมูลยา
   async function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -435,6 +436,7 @@ export default function MedicinesPage() {
     }
   }
 
+  // ลบข้อมูลยาจากระบบผ่าน API (soft delete) แล้วรีโหลดตาราง
   async function handleDelete(id: string) {
     const medicine = medicines.find((item) => item.id === id)
     const label =
