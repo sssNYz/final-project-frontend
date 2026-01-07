@@ -3,13 +3,7 @@
 import type { CSSProperties } from "react"
 import { useMemo, useState } from "react"
 
-import {
-  CalendarDays,
-  FileText,
-  Image as ImageIcon,
-  Search,
-  X,
-} from "lucide-react"
+import { FileText, Image as ImageIcon, Search, X } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -22,6 +16,12 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -58,6 +58,7 @@ type RequestRow = {
   submittedDate: string
   subject: string
   content: string
+  imageUrl?: string
 }
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -161,9 +162,32 @@ const initialRequests: RequestRow[] = [
 // หน้า Dashboard > รายการคำร้องจากผู้ใช้
 // ใช้ดู/กรองคำร้องตามหมวดหมู่ สถานะ ช่วงวันที่ และอีเมล พร้อมทั้งเปิดดูรายละเอียดคำร้องทีละรายการ
 function formatDisplayDate(isoDate: string) {
-  const [year, month, day] = isoDate.split("-")
+  const [yearStr, monthStr, dayStr] = isoDate.split("-")
+  const year = Number(yearStr)
+  const month = Number(monthStr)
+  const day = Number(dayStr)
   if (!year || !month || !day) return isoDate
-  return `${day}.${month}.${year.slice(-2)}`
+
+  const thaiMonths = [
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม",
+  ]
+
+  const monthName = thaiMonths[month - 1]
+  if (!monthName) return isoDate
+
+  const buddhistYear = year + 543
+  return `${day} ${monthName} ${buddhistYear}`
 }
 
 // คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
@@ -177,8 +201,10 @@ export default function RequestsPage() {
     "all" | RequestStatus
   >("all")
   const [searchEmail, setSearchEmail] = useState("")
-  const [fromDate, setFromDate] = useState("")
-  const [toDate, setToDate] = useState("")
+  const [fromDate, setFromDate] =
+    useState<Date | undefined>(undefined)
+  const [toDate, setToDate] =
+    useState<Date | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(1)
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
@@ -200,10 +226,16 @@ export default function RequestsPage() {
         request.submittedDate,
       ).getTime()
       const afterFrom = fromDate
-        ? dateValue >= new Date(fromDate).getTime()
+        ? dateValue >=
+          new Date(
+            fromDate.toISOString().slice(0, 10),
+          ).getTime()
         : true
       const beforeTo = toDate
-        ? dateValue <= new Date(toDate).getTime()
+        ? dateValue <=
+          new Date(
+            toDate.toISOString().slice(0, 10),
+          ).getTime()
         : true
 
       return (
@@ -387,26 +419,60 @@ export default function RequestsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
-                 <span>วันที่ส่งคำร้อง</span>
+                  <span>วันที่ส่งคำร้อง</span>
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <Input
-                        type="date"
-                        value={fromDate}
-                        onChange={(event) => setFromDate(event.target.value)}
-                        className="w-40 rounded-full bg-slate-100"
-                      />
-                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
+                          >
+                            <span>
+                              {fromDate
+                                ? `${fromDate.getDate()} ${fromDate.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "long" },
+                                  )} ${fromDate.getFullYear() + 543}`
+                                : "วันที่เริ่มต้น"}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={fromDate}
+                            onSelect={setFromDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <span>ถึง</span>
                     <div className="relative">
-                      <Input
-                        type="date"
-                        value={toDate}
-                        onChange={(event) => setToDate(event.target.value)}
-                        className="w-40 rounded-full bg-slate-100"
-                      />
-                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
+                          >
+                            <span>
+                              {toDate
+                                ? `${toDate.getDate()} ${toDate.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "long" },
+                                  )} ${toDate.getFullYear() + 543}`
+                                : "วันที่สิ้นสุด"}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={toDate}
+                            onSelect={setToDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
@@ -605,8 +671,8 @@ export default function RequestsPage() {
             </Card>
 
             {activeRequest && (
-              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
-                <div className="relative w-[min(720px,100%)] rounded-3xl bg-gradient-to-br from-sky-900 via-sky-700 to-slate-700 p-6 text-white shadow-2xl">
+              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-4">
+                <div className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-br from-sky-900 via-sky-700 to-slate-700 p-6 text-white shadow-2xl">
                   <button
                     type="button"
                     onClick={closeRequestDetail}
@@ -618,25 +684,28 @@ export default function RequestsPage() {
                   <h2 className="mb-4 text-center text-lg font-semibold">
                     คำร้องจากผู้ใช้
                   </h2>
-                  <div className="grid gap-4 md:grid-cols-[1.1fr,1.7fr]">
-                    <div className="space-y-4 rounded-3xl bg-white/10 p-4">
-                      <div className="rounded-2xl bg-white/90 px-4 py-3 text-center text-xs font-semibold text-slate-800">
-                        STATUS :{" "}
-                        <span className="text-sky-700">
-                          {STATUS_LABELS[activeRequest.status]}
-                        </span>
-                      </div>
-                      <div className="flex h-40 items-center justify-center rounded-3xl bg-white">
-                        <ImageIcon className="h-16 w-16 text-slate-300" />
-                      </div>
+                  <div className="space-y-4 rounded-3xl bg-white/5 p-4 text-xs">
+                    <div className="rounded-2xl bg-white/90 px-4 py-3 text-center text-xs font-semibold text-slate-800">
+                      STATUS :{" "}
+                      <span className="text-sky-700">
+                        {STATUS_LABELS[activeRequest.status]}
+                      </span>
                     </div>
-                    <div className="space-y-3 rounded-3xl bg-white/5 p-4 text-xs">
+                    <div className="space-y-3">
                       <div className="space-y-1">
                         <div className="font-semibold">
                           อีเมลผู้ส่งคำร้อง
                         </div>
                         <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
                           {activeRequest.email}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-semibold">
+                          วันที่ส่งคำร้อง
+                        </div>
+                        <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
+                          {formatDisplayDate(activeRequest.submittedDate)}
                         </div>
                       </div>
                       <div className="space-y-1">
@@ -662,23 +731,39 @@ export default function RequestsPage() {
                         </div>
                       </div>
                     </div>
+                    <div className="flex h-40 items-center justify-center rounded-3xl bg-white">
+                      {/* ถ้ามีรูปแนบมากับคำร้อง ใช้รูปนั้น ถ้าไม่มีก็ใช้รูปยาตัวอย่าง */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          activeRequest.imageUrl &&
+                          activeRequest.imageUrl.length > 0
+                            ? activeRequest.imageUrl
+                            : "/medicine-placeholder.svg"
+                        }
+                        alt="รูปยาประกอบคำร้อง"
+                        className="h-full w-full max-w-[200px] object-contain"
+                      />
+                    </div>
                   </div>
-                  <div className="mt-6 flex items-center justify-between gap-4">
-                    <Button
-                      type="button"
-                      onClick={() => resolveFromDetail("rejected")}
-                      className="flex-1 rounded-full bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
-                    >
-                      ปฏิเสธ
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => resolveFromDetail("completed")}
-                      className="flex-1 rounded-full bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
-                    >
-                      เสร็จสิ้น
-                    </Button>
-                  </div>
+                  {activeRequest.status === "pending" && (
+                    <div className="mt-6 flex items-center justify-between gap-4">
+                      <Button
+                        type="button"
+                        onClick={() => resolveFromDetail("rejected")}
+                        className="flex-1 rounded-full bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
+                      >
+                        ปฏิเสธ
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => resolveFromDetail("completed")}
+                        className="flex-1 rounded-full bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
+                      >
+                        เสร็จสิ้น
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

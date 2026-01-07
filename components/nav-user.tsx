@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
@@ -36,14 +36,11 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
-  const [currentEmail, setCurrentEmail] = useState<string | null>(null)
-
-  // อ่านอีเมลผู้ใช้ปัจจุบันจาก localStorage เพื่อแสดงชื่อ/อีเมลใน Sidebar
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const storedEmail = window.localStorage.getItem("currentUserEmail")
-    setCurrentEmail(storedEmail)
-  }, [])
+  const [currentEmail] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("currentUserEmail")
+      : null,
+  )
 
   const displayEmail = currentEmail ?? user.email
   const displayName =
@@ -112,8 +109,11 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout}>
-              <IconLogout />
+            <DropdownMenuItem
+              onSelect={handleLogout}
+              className="cursor-pointer bg-transparent text-red-600 focus:bg-transparent focus:outline-none data-[highlighted]:bg-transparent data-[highlighted]:text-red-600"
+            >
+              <IconLogout className="mr-1" />
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

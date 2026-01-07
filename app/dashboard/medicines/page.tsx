@@ -898,7 +898,12 @@ export default function MedicinesPage() {
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
-                                <Pill className="h-5 w-5 text-slate-500" />
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src="/medicine-placeholder.svg"
+                                  alt="รูปยาตัวอย่าง"
+                                  className="h-full w-full object-cover"
+                                />
                               )}
                             </div>
                             <div>
@@ -1036,7 +1041,12 @@ export default function MedicinesPage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <Pill className="h-8 w-8 text-slate-500" />
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src="/medicine-placeholder.svg"
+                          alt="รูปยาตัวอย่าง"
+                          className="h-full w-full object-cover"
+                        />
                       )}
                     </div>
                     <div className="text-xs text-slate-600">

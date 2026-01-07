@@ -4,18 +4,19 @@
 import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 
-import { CalendarDays } from "lucide-react"
-
 import { apiUrl } from "@/lib/apiClient"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   SidebarInset,
   SidebarProvider,
@@ -33,8 +34,8 @@ type AccountRow = {
 // พร้อมตัวกรองช่วงวันที่ และตารางสรุป
 export default function Page() {
   const [rows, setRows] = useState<AccountRow[]>([])
-  const [fromDate, setFromDate] = useState("")
-  const [toDate, setToDate] = useState("")
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined)
+  const [toDate, setToDate] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -46,8 +47,8 @@ export default function Page() {
         setLoadError(null)
 
         const params = new URLSearchParams()
-        if (fromDate) params.set("fromDate", fromDate)
-        if (toDate) params.set("toDate", toDate)
+        if (fromDate) params.set("fromDate", fromDate.toISOString().slice(0, 10))
+        if (toDate) params.set("toDate", toDate.toISOString().slice(0, 10))
 
         const query = params.toString()
         const url = query
@@ -134,23 +135,57 @@ export default function Page() {
                   <span>วันที่รับประทานยา</span>
                   <div className="flex items-center gap-2">
                     <div className="relative">
-                      <Input
-                        type="date"
-                        value={fromDate}
-                        onChange={(event) => setFromDate(event.target.value)}
-                        className="w-40 rounded-full bg-slate-100"
-                      />
-                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
+                          >
+                            <span>
+                              {fromDate
+                                ? `${fromDate.getDate()} ${fromDate.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "long" },
+                              )} ${fromDate.getFullYear() + 543}`
+                                : "เลือกวันที่เริ่มต้น"}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={fromDate}
+                            onSelect={setFromDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <span>ถึง</span>
                     <div className="relative">
-                      <Input
-                        type="date"
-                        value={toDate}
-                        onChange={(event) => setToDate(event.target.value)}
-                        className="w-40 rounded-full bg-slate-100"
-                      />
-                      <CalendarDays className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
+                          >
+                            <span>
+                              {toDate
+                                ? `${toDate.getDate()} ${toDate.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "long" },
+                              )} ${toDate.getFullYear() + 543}`
+                                : "เลือกวันที่สิ้นสุด"}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-2" side="bottom">
+                          <Calendar
+                            mode="single"
+                            selected={toDate}
+                            onSelect={setToDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
