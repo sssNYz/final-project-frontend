@@ -59,23 +59,39 @@ const data = {
 // แสดงเมนูนำทางไปยังหน้าจัดการบัญชีผู้ใช้, ข้อมูลยา, ปริมาณข้อมูล และรายการคำร้อง
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
+    <Sidebar
+      collapsible="offcanvas"
+      className="border-r border-slate-200 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-slate-100"
+      {...props}
+    >
+      <SidebarHeader className="px-3 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              size="lg"
+              className="data-[slot=sidebar-menu-button]:!p-2 bg-slate-900/60 text-slate-50 shadow-sm hover:bg-slate-800/80"
             >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">MediBuddy</span>
+              <a href="/dashboard" aria-label="กลับไปหน้า Dashboard">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
+                    <IconInnerShadowTop className="!size-5" />
+                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold leading-tight">
+                      MediBuddy Admin
+                    </span>
+                    <span className="text-[11px] text-slate-200/80">
+                      Medication Management Console
+                    </span>
+                  </div>
+                </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2 pb-4 pt-1">
         <NavMain items={data.mainNav} />
       </SidebarContent>
     </Sidebar>

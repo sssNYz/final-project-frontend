@@ -96,12 +96,31 @@ const emptyForm: FormState = {
   storage: "",
 }
 
+// แปลงค่าที่ได้จาก mediPicture ให้เป็น URL ที่ใช้งานได้บนเว็บ
+// ใช้รูปแบบฐานเดียวกันเสมอคือ
+//   NEXT_PUBLIC_API_BASE_URL + "/uploads/profile-pictures/<fileName>"
+// ไม่ว่า mediPicture จะเก็บเป็น URL เต็ม, path หรือแค่ชื่อไฟล์
+function resolveImageUrl(path?: string | null): string | undefined {
+  if (!path) return undefined
+
+  // ดึงเฉพาะชื่อไฟล์จากค่าเดิม (รองรับทั้ง URL เต็ม, path และชื่อไฟล์ล้วน)
+  const segments = path.split("/").filter(Boolean)
+  const fileName = segments[segments.length - 1]
+  if (!fileName) return undefined
+
+  const relativePath = `uploads/profile-pictures/${fileName}`
+  return apiUrl(relativePath)
+}
+
 // หน้า Dashboard > ข้อมูลยา
 // ใช้จัดการรายการยาในระบบ (ค้นหา, กรอง, เพิ่ม/แก้ไข/ลบ และดูรายละเอียดของยาแต่ละตัว)
 export default function MedicinesPage() {
   const [medicines, setMedicines] = useState<MedicineRow[]>([])
   const [usageFilter, setUsageFilter] = useState<"all" | UsageType>("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [usageFilterInput, setUsageFilterInput] =
+    useState<"all" | UsageType>("all")
+  const [searchTermInput, setSearchTermInput] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<FormState>(emptyForm)
@@ -154,20 +173,22 @@ export default function MedicinesPage() {
         mediPicture?: string | null
       }[]
 
-      const next: MedicineRow[] = items.map((item) => ({
-        id: String(item.mediId),
-        imageUrl: item.mediPicture ? `/${item.mediPicture}` : undefined,
-        genericNameTh: item.mediThName,
-        genericNameEn: item.mediEnName,
-        brandName: item.mediTradeName ?? "",
-        usageType: item.mediType === "TOPICAL" ? "topical" : "oral",
-        indications: "",
-        instructions: "",
-        adverseEffects: "",
-        contraindications: "",
-        precautions: "",
-        storage: "",
-      }))
+      const next: MedicineRow[] = items.map((item) => {
+        return {
+          id: String(item.mediId),
+          imageUrl: resolveImageUrl(item.mediPicture),
+          genericNameTh: item.mediThName,
+          genericNameEn: item.mediEnName,
+          brandName: item.mediTradeName ?? "",
+          usageType: item.mediType === "TOPICAL" ? "topical" : "oral",
+          indications: "",
+          instructions: "",
+          adverseEffects: "",
+          contraindications: "",
+          precautions: "",
+          storage: "",
+        }
+      })
 
       setMedicines(next)
       setCurrentPage(1)
@@ -398,9 +419,7 @@ export default function MedicinesPage() {
 
       const mapped: MedicineRow = {
         id: String(apiMedicine.mediId),
-        imageUrl: apiMedicine.mediPicture
-          ? `/${apiMedicine.mediPicture}`
-          : undefined,
+        imageUrl: resolveImageUrl(apiMedicine.mediPicture),
         genericNameTh: apiMedicine.mediThName,
         genericNameEn: apiMedicine.mediEnName,
         brandName: apiMedicine.mediTradeName ?? "",
@@ -511,14 +530,68 @@ export default function MedicinesPage() {
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader
-            title="ข้อมูลยาในระบบ"
-            description="ค้นหา แก้ไข และจัดการข้อมูลยาที่ใช้ในระบบ MediBuddy"
-          />
+          <DashboardPageHeader title="ข้อมูลยาในระบบ">
+            <div className="flex w-full items-end gap-3 overflow-x-auto pb-1">
+              <div className="flex flex-1 items-end justify-center gap-3">
+                <div className="relative min-w-[320px] max-w-lg flex-1">
+                  <Input
+                    type="text"
+                    placeholder="ค้นหาชื่อยา หรือชื่อการค้า"
+                    value={searchTermInput}
+                    onChange={(event) =>
+                      setSearchTermInput(event.target.value)
+                    }
+                    className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
+                    onClick={() => {
+                      setUsageFilter(usageFilterInput)
+                      setSearchTerm(searchTermInput)
+                      setCurrentPage(1)
+                    }}
+                    aria-label="ค้นหาข้อมูลยา"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-600">
+                    รูปแบบการใช้ยา
+                  </span>
+                  <Select
+                    value={usageFilterInput}
+                    onValueChange={(value) =>
+                      setUsageFilterInput(value as "all" | UsageType)
+                    }
+                  >
+                    <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
+                      <SelectValue placeholder="ทั้งหมด" />
+                    </SelectTrigger>
+                    <SelectContent align="start">
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
+                      <SelectItem value="oral">ยากิน</SelectItem>
+                      <SelectItem value="topical">ยาใช้ภายนอก</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                type="button"
+                className="ml-auto h-9 rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
+                onClick={openCreateForm}
+              >
+                + เพิ่มยาใหม่
+              </Button>
+            </div>
+          </DashboardPageHeader>
           <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-            <Card className="shadow-sm">
-              <CardContent className="space-y-4 pt-1">
-                {editingId && (
+            {(editingId || loadError) && (
+              <Card className="shadow-sm">
+                <CardContent className="space-y-4 pt-1">
+                  {editingId && (
                   <form
                     onSubmit={handleFormSubmit}
                     className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
@@ -783,225 +856,163 @@ export default function MedicinesPage() {
                       </Button>
                     </div>
                   </form>
-                )}
+                  )}
 
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="ชื่อสามัญทางยาไทยและอังกฤษ/ชื่อการค้า"
-                      value={searchTerm}
-                      onChange={(event) => {
-                        setSearchTerm(event.target.value)
-                        setCurrentPage(1)
-                      }}
-                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                  </div>
+                  {loadError && (
+                    <div className="text-sm text-red-500">{loadError}</div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-                  {/* <Button
-                    size="sm"
-                    className="rounded-full bg-slate-700 px-5 text-xs font-semibold text-white hover:bg-slate-800"
-                    type="button"
-                  >
-                    <Pill className="h-4 w-4" />
-                    ข้อมูลยา
-                  </Button> */}
+            <section>
+              <Table className="border border-slate-200 rounded-xl bg-white">
+                <TableHeader>
+                  <TableRow className="bg-slate-700">
+                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                      ชื่อสามัญยา
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                      ชื่อการค้า
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                      รูปแบบการใช้
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                      จัดการ
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedMedicines.map((medicine) => (
+                    <TableRow
+                      key={medicine.id}
+                      className="even:bg-slate-50/70"
+                    >
+                      <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                            {medicine.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={medicine.imageUrl}
+                                alt={medicine.genericNameEn}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src="/medicine-placeholder.svg"
+                                alt="รูปยาตัวอย่าง"
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <div>{medicine.genericNameEn}</div>
+                            {medicine.genericNameTh && (
+                              <div className="text-xs font-normal text-slate-600">
+                                ({medicine.genericNameTh})
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+                        {medicine.brandName}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+                        {USAGE_LABELS[medicine.usageType]}
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(medicine.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
+                            aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openViewDetails(medicine.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
+                            aria-label={`ดูรายละเอียดข้อมูลยา ${medicine.genericNameEn}`}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {paginatedMedicines.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="py-6 text-center text-sm text-slate-500"
+                      >
+                        ไม่พบข้อมูลยาตามเงื่อนไขที่เลือก
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
 
-                  <Select
-                    value={usageFilter}
-                    onValueChange={(value) => {
-                      setUsageFilter(value as "all" | UsageType)
-                      setCurrentPage(1)
-                    }}
-                  >
-                    <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
-                      <SelectValue placeholder="รูปแบบการใช้" />
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      <SelectItem value="oral">
-                        ยากิน
-                      </SelectItem>
-                      <SelectItem value="topical">
-                        ยาใช้ภายนอก
-                      </SelectItem>
-                      <SelectItem value="all">
-                        ทั้งหมด
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    size="sm"
-                    className="rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
-                    type="button"
-                    onClick={openCreateForm}
-                  >
-                    + เพิ่มยาใหม่
-                  </Button>
-                </div>
-                <div className="text-sm text-slate-600">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
+                <span className="text-xs text-slate-500">
                   {isLoading ? (
-                    <span>กำลังโหลดข้อมูลยา...</span>
+                    <>กำลังโหลดข้อมูลยา...</>
                   ) : (
                     <>
                       พบข้อมูลยา{" "}
                       <span className="font-semibold text-slate-800">
                         {filteredMedicines.length}
                       </span>{" "}
-                      รายการ
+                      รายการ · หน้า {safePage} จาก {totalPages}
                     </>
                   )}
-                  {loadError && (
-                    <span className="ml-2 text-xs text-red-500">
-                      {loadError}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-700">
-                      <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                        ชื่อสามัญยา
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                        ชื่อการค้า
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                        รูปแบบการใช้
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                        จัดการ
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedMedicines.map((medicine) => (
-                      <TableRow
-                        key={medicine.id}
-                        className="even:bg-slate-50/70"
-                      >
-                        <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200">
-                              {medicine.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={medicine.imageUrl}
-                                  alt={medicine.genericNameEn}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src="/medicine-placeholder.svg"
-                                  alt="รูปยาตัวอย่าง"
-                                  className="h-full w-full object-cover"
-                                />
-                              )}
-                            </div>
-                            <div>
-                              <div>{medicine.genericNameEn}</div>
-                              {medicine.genericNameTh && (
-                                <div className="text-xs font-normal text-slate-600">
-                                  ({medicine.genericNameTh})
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                          {medicine.brandName}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                          {USAGE_LABELS[medicine.usageType]}
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(medicine.id)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
-                              aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openViewDetails(medicine.id)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
-                              aria-label={`ดูรายละเอียดข้อมูลยา ${medicine.genericNameEn}`}
-                            >
-                              <FileText className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {paginatedMedicines.length === 0 && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-6 text-center text-sm text-slate-500"
+                </span>
+                <div className="flex flex-1 items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage - 1)}
+                    disabled={!canGoPrev}
+                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, index) => {
+                      const page = index + 1
+                      const isActive = page === safePage
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => goToPage(page)}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
+                            isActive
+                              ? "bg-sky-700 text-white"
+                              : "text-slate-700 hover:bg-slate-100"
+                          }`}
                         >
-                          ไม่พบข้อมูลยาตามเงื่อนไขที่เลือก
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
-                  <span className="text-xs text-slate-500">
-                    หน้า {safePage} จาก {totalPages}
-                  </span>
-                  <div className="flex flex-1 items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => goToPage(safePage - 1)}
-                      disabled={!canGoPrev}
-                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                    >
-                      ก่อนหน้า
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, index) => {
-                        const page = index + 1
-                        const isActive = page === safePage
-                        return (
-                          <button
-                            key={page}
-                            type="button"
-                            onClick={() => goToPage(page)}
-                            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
-                              isActive
-                                ? "bg-sky-700 text-white"
-                                : "text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => goToPage(safePage + 1)}
-                      disabled={!canGoNext}
-                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                    >
-                      ถัดไป
-                    </button>
+                          {page}
+                        </button>
+                      )
+                    })}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage + 1)}
+                    disabled={!canGoNext}
+                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                  >
+                    ถัดไป
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           </div>
         </main>
 

@@ -6,6 +6,7 @@ type DashboardPageHeaderProps = {
   title: string
   description?: string
   className?: string
+  children?: React.ReactNode
 }
 
 // Header มุมบนของแต่ละหน้าใน Dashboard
@@ -14,22 +15,30 @@ export function DashboardPageHeader({
   title,
   description,
   className,
+  children,
 }: DashboardPageHeaderProps) {
   return (
     <header
       className={cn(
-        "border-b bg-slate-50/80 px-4 py-3 lg:px-6",
+        "border-b border-slate-200/80 bg-slate-900/3 px-4 py-4 backdrop-blur-sm lg:px-6",
         className,
       )}
     >
-      <h2 className="text-base font-semibold text-slate-800">
-        {title}
-      </h2>
-      {description && (
-        <p className="mt-1 text-xs text-slate-600">
-          {description}
-        </p>
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+            {title}
+          </h2>
+          {description && (
+            <p className="mt-1 text-xs text-slate-600">
+              {description}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+          {children}
+        </div>
+      </div>
     </header>
   )
 }

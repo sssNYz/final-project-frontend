@@ -9,12 +9,6 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -82,7 +76,7 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
   other: "อื่นๆ",
 }
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 10
 
 const initialRequests: RequestRow[] = [
   {
@@ -205,6 +199,16 @@ export default function RequestsPage() {
     useState<Date | undefined>(undefined)
   const [toDate, setToDate] =
     useState<Date | undefined>(undefined)
+  const [categoryFilterInput, setCategoryFilterInput] =
+    useState<"all" | RequestCategory>("all")
+  const [statusFilterInput, setStatusFilterInput] =
+    useState<"all" | RequestStatus>("all")
+  const [searchEmailInput, setSearchEmailInput] =
+    useState("")
+  const [fromDateInput, setFromDateInput] =
+    useState<Date | undefined>(undefined)
+  const [toDateInput, setToDateInput] =
+    useState<Date | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(1)
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
@@ -262,6 +266,7 @@ export default function RequestsPage() {
     pendingCount,
     rejectedCount,
     completedCount,
+    totalCount,
   } = useMemo(() => {
     // นับจำนวนคำร้องตามสถานะจากชุด baseFilteredRequests
     // (ตัวเลขสรุปสถานะไม่ถูกเปลี่ยนตาม statusFilter)
@@ -274,6 +279,7 @@ export default function RequestsPage() {
     const completed = baseFilteredRequests.filter(
       (item) => item.status === "completed",
     ).length
+    const totalCount = baseFilteredRequests.length
 
     const total = Math.max(
       1,
@@ -293,6 +299,7 @@ export default function RequestsPage() {
       pendingCount: pending,
       rejectedCount: rejected,
       completedCount: completed,
+      totalCount,
     }
   }, [filteredRequests, baseFilteredRequests, currentPage])
 
@@ -339,219 +346,245 @@ export default function RequestsPage() {
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader
-            title="รายการคำร้องจากผู้ใช้"
-            description="ดู จัดการ และเปลี่ยนสถานะคำร้องต่างๆ จากผู้ใช้งานระบบ"
-          />
-          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-            <Card className="shadow-sm">
-              <CardContent className="space-y-3 pt-1">
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="อีเมลผู้ส่งคำร้อง"
-                      value={searchEmail}
-                      onChange={(event) =>
-                        setSearchEmail(event.target.value)
+          <DashboardPageHeader title="รายการคำร้องจากผู้ใช้">
+            <div className="flex w-full items-end gap-3 overflow-x-auto pb-1">
+              <div className="flex flex-1 items-end justify-center gap-3">
+                {/* กล่องค้นหาอีเมล */}
+                <div className="relative min-w-[260px] max-w-md flex-1">
+                  <Input
+                    type="text"
+                    placeholder="อีเมลผู้ส่งคำร้อง"
+                    value={searchEmailInput}
+                    onChange={(event) =>
+                      setSearchEmailInput(event.target.value)
+                    }
+                    className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
+                    onClick={() => {
+                      setCategoryFilter(categoryFilterInput)
+                      setStatusFilter(statusFilterInput)
+                      setSearchEmail(searchEmailInput)
+                      setFromDate(fromDateInput)
+                      setToDate(toDateInput)
+                      setCurrentPage(1)
+                    }}
+                    aria-label="ค้นหารายการคำร้อง"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* หมวดหมู่ + สถานะ (วางต่อจากช่องค้นหา) */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-slate-600">
+                      หมวดหมู่
+                    </span>
+                    <Select
+                      value={categoryFilterInput}
+                      onValueChange={(value) =>
+                        setCategoryFilterInput(
+                          value as "all" | RequestCategory,
+                        )
                       }
-                      className="w-80 max-w-full rounded-full bg-slate-100 pr-10 text-xs text-slate-800 placeholder:text-slate-400"
-                    />
-                    <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    >
+                      <SelectTrigger className="h-8 w-auto rounded-full border-none bg-slate-900/80 px-3 text-[11px] font-medium text-white shadow-sm hover:bg-slate-900">
+                        <SelectValue placeholder="ทั้งหมด" />
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="data-info">
+                          คำร้องขอข้อมูลยา
+                        </SelectItem>
+                        <SelectItem value="usage-problem">
+                          ปัญหาการใช้งาน
+                        </SelectItem>
+                        <SelectItem value="feature">
+                          ฟังก์ชันการทำงาน
+                        </SelectItem>
+                        <SelectItem value="other">อื่นๆ</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-slate-600">สถานะ</span>
+                    <Select
+                      value={statusFilterInput}
+                      onValueChange={(value) =>
+                        setStatusFilterInput(
+                          value as "all" | RequestStatus,
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-auto rounded-full border-none bg-slate-900/80 px-3 text-[11px] font-medium text-white shadow-sm hover:bg-slate-900">
+                        <SelectValue placeholder="ทั้งหมด" />
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="pending">รอยืนยัน</SelectItem>
+                        <SelectItem value="rejected">ปฏิเสธ</SelectItem>
+                        <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={(value) =>
-                      setCategoryFilter(
-                        value as "all" | RequestCategory,
-                      )
-                    }
+                {/* แคปซูลเลือกช่วงวันที่ (ต่อท้าย dropdown) */}
+                <div className="flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-1.5 text-[11px] text-slate-100 shadow-sm">
+                  <span className="mr-1 font-medium">วันที่ส่งคำร้อง</span>
+                  <div className="flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5">
+                    <span className="mr-1 text-[11px] text-slate-200">
+                      เริ่มต้น
+                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-28 items-center justify-between rounded-full bg-slate-900 px-3 py-1 text-[11px] text-slate-100"
+                        >
+                          <span className="truncate">
+                            {fromDateInput
+                              ? `${fromDateInput.getDate()} ${fromDateInput.toLocaleDateString(
+                                  "th-TH-u-ca-buddhist",
+                                  { month: "short" },
+                                )} ${fromDateInput.getFullYear() + 543}`
+                              : "เริ่มต้น"}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2" side="bottom">
+                        <Calendar
+                          mode="single"
+                          selected={fromDateInput}
+                          onSelect={setFromDateInput}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="mx-1 text-[11px] text-slate-300">
+                      ถึง
+                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-28 items-center justify-between rounded-full bg-slate-900 px-3 py-1 text-[11px] text-slate-100"
+                        >
+                          <span className="truncate">
+                            {toDateInput
+                              ? `${toDateInput.getDate()} ${toDateInput.toLocaleDateString(
+                                  "th-TH-u-ca-buddhist",
+                                  { month: "short" },
+                                )} ${toDateInput.getFullYear() + 543}`
+                              : "สิ้นสุด"}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2" side="bottom">
+                        <Calendar
+                          mode="single"
+                          selected={toDateInput}
+                          onSelect={setToDateInput}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DashboardPageHeader>
+          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-1 flex-wrap items-stretch gap-3 text-[11px] font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter("all")
+                      setStatusFilterInput("all")
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "all"}
+                    className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
+                      statusFilter === "all"
+                        ? "border-slate-800 bg-slate-800 text-white shadow-sm"
+                        : "border-slate-400 bg-slate-100 text-slate-800 hover:bg-slate-200"
+                    }`}
                   >
-                    <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
-                      <SelectValue placeholder="หมวดหมู่" />
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      <SelectItem value="all">
-                        หมวดหมู่คำร้องทั้งหมด
-                      </SelectItem>
-                      <SelectItem value="data-info">
-                        คำร้องขอข้อมูลยา
-                      </SelectItem>
-                      <SelectItem value="usage-problem">
-                        ปัญหาการใช้งาน
-                      </SelectItem>
-                      <SelectItem value="feature">
-                        ฟังก์ชันการทำงาน
-                      </SelectItem>
-                      <SelectItem value="other">
-                        อื่นๆ
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(value) =>
-                      setStatusFilter(
-                        value as "all" | RequestStatus,
-                      )
-                    }
+                    <span>ทั้งหมด</span>
+                    <span className="text-sm font-bold">
+                      {totalCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next =
+                        statusFilter === "pending" ? "all" : "pending"
+                      setStatusFilter(next)
+                      setStatusFilterInput(next)
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "pending"}
+                    className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
+                      statusFilter === "pending"
+                        ? "border-orange-700 bg-orange-600 text-white shadow-sm"
+                        : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
+                    }`}
                   >
-                    <SelectTrigger className="h-9 rounded-full border-none bg-slate-700/90 px-4 text-xs font-medium text-white hover:bg-slate-800/90">
-                      <SelectValue placeholder="สถานะ" />
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      <SelectItem value="all">
-                        สถานะคำร้องทั้งหมด
-                      </SelectItem>
-                      <SelectItem value="pending">
-                        รอยืนยัน
-                      </SelectItem>
-                      <SelectItem value="rejected">
-                        ปฏิเสธ
-                      </SelectItem>
-                      <SelectItem value="completed">
-                        เสร็จสิ้น
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <span>รอยืนยัน</span>
+                    <span className="text-sm font-bold">
+                      {pendingCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next =
+                        statusFilter === "rejected" ? "all" : "rejected"
+                      setStatusFilter(next)
+                      setStatusFilterInput(next)
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "rejected"}
+                    className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
+                      statusFilter === "rejected"
+                        ? "border-red-700 bg-red-600 text-white shadow-sm"
+                        : "border-red-500 bg-red-500 text-red-50 hover:bg-red-600"
+                    }`}
+                  >
+                    <span>ปฏิเสธ</span>
+                    <span className="text-sm font-bold">
+                      {rejectedCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next =
+                        statusFilter === "completed" ? "all" : "completed"
+                      setStatusFilter(next)
+                      setStatusFilterInput(next)
+                      setCurrentPage(1)
+                    }}
+                    aria-pressed={statusFilter === "completed"}
+                    className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
+                      statusFilter === "completed"
+                        ? "border-emerald-700 bg-emerald-600 text-white shadow-sm"
+                        : "border-emerald-500 bg-emerald-500 text-emerald-50 hover:bg-emerald-600"
+                    }`}
+                  >
+                    <span>เสร็จสิ้น</span>
+                    <span className="text-sm font-bold">
+                      {completedCount}
+                    </span>
+                  </button>
                 </div>
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
-                  <span>วันที่ส่งคำร้อง</span>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
-                          >
-                            <span>
-                              {fromDate
-                                ? `${fromDate.getDate()} ${fromDate.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "long" },
-                                  )} ${fromDate.getFullYear() + 543}`
-                                : "วันที่เริ่มต้น"}
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-2" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <span>ถึง</span>
-                    <div className="relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
-                          >
-                            <span>
-                              {toDate
-                                ? `${toDate.getDate()} ${toDate.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "long" },
-                                  )} ${toDate.getFullYear() + 543}`
-                                : "วันที่สิ้นสุด"}
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-2" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={toDate}
-                            onSelect={setToDate}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base font-semibold text-slate-800">
-                    รายการคำร้อง
-                  </CardTitle>
-                  <div className="flex items-center gap-2 text-[11px] font-semibold">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter((current) =>
-                          current === "pending" ? "all" : "pending",
-                        )
-                        setCurrentPage(1)
-                      }}
-                      aria-pressed={statusFilter === "pending"}
-                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
-                        statusFilter === "pending"
-                          ? "border-orange-700 bg-orange-600 text-white shadow-sm"
-                          : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
-                      }`}
-                    >
-                      <span className="text-xs">รอยืนยัน</span>
-                      <span className="text-sm font-bold">
-                        {pendingCount}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter((current) =>
-                          current === "rejected" ? "all" : "rejected",
-                        )
-                        setCurrentPage(1)
-                      }}
-                      aria-pressed={statusFilter === "rejected"}
-                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
-                        statusFilter === "rejected"
-                          ? "border-red-700 bg-red-600 text-white shadow-sm"
-                          : "border-red-500 bg-red-500 text-red-50 hover:bg-red-600"
-                      }`}
-                    >
-                      <span className="text-xs">ปฏิเสธ</span>
-                      <span className="text-sm font-bold">
-                        {rejectedCount}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter((current) =>
-                          current === "completed" ? "all" : "completed",
-                        )
-                        setCurrentPage(1)
-                      }}
-                      aria-pressed={statusFilter === "completed"}
-                      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1 transition ${
-                        statusFilter === "completed"
-                          ? "border-emerald-700 bg-emerald-600 text-white shadow-sm"
-                          : "border-emerald-500 bg-emerald-500 text-emerald-50 hover:bg-emerald-600"
-                      }`}
-                    >
-                      <span className="text-xs">เสร็จสิ้น</span>
-                      <span className="text-sm font-bold">
-                        {completedCount}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-1">
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                  <Table>
+              <Table className="border border-slate-200 bg-white">
                     <TableHeader>
                       <TableRow className="bg-slate-700">
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
@@ -620,55 +653,54 @@ export default function RequestsPage() {
                     </TableBody>
                   </Table>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
-                    <span className="text-xs text-slate-500">
-                      หน้า {safePage} จาก {totalPages}
-                    </span>
-                    <div className="flex flex-1 items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => goToPage(safePage - 1)}
-                        disabled={!canGoPrev}
-                        className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                      >
-                        ก่อนหน้า
-                      </button>
-                      <div className="flex items-center gap-1">
-                        {Array.from(
-                          { length: totalPages },
-                          (_, index) => {
-                            const page = index + 1
-                            const isActive = page === safePage
-                            return (
-                              <button
-                                key={page}
-                                type="button"
-                                onClick={() => goToPage(page)}
-                                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
-                                  isActive
-                                    ? "bg-sky-700 text-white"
-                                    : "text-slate-700 hover:bg-slate-100"
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            )
-                          },
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => goToPage(safePage + 1)}
-                        disabled={!canGoNext}
-                        className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                      >
-                        ถัดไป
-                      </button>
-                    </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
+                <span className="text-xs text-slate-600">
+                  รายการคำร้องที่พบ{" "}
+                  <span className="font-semibold text-slate-800">
+                    {filteredRequests.length}
+                  </span>{" "}
+                  รายการ · หน้า {safePage} จาก {totalPages}
+                </span>
+                <div className="flex flex-1 items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage - 1)}
+                    disabled={!canGoPrev}
+                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, index) => {
+                      const page = index + 1
+                      const isActive = page === safePage
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => goToPage(page)}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
+                            isActive
+                              ? "bg-sky-700 text-white"
+                              : "text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    })}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => goToPage(safePage + 1)}
+                    disabled={!canGoNext}
+                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                  >
+                    ถัดไป
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
             {activeRequest && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-4">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
@@ -36,13 +36,20 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
-  const [currentEmail] = useState<string | null>(() =>
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("currentUserEmail")
-      : null,
-  )
+  const [displayEmail, setDisplayEmail] = useState(user.email)
 
-  const displayEmail = currentEmail ?? user.email
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const storedEmail = window.localStorage.getItem("currentUserEmail")
+    if (storedEmail) {
+      // อ่านอีเมลจาก localStorage หลังจาก mount แล้วเท่านั้น
+      // เพื่อไม่ให้ค่า server / client แตกต่างกันตอน hydration
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDisplayEmail(storedEmail)
+    }
+  }, [])
+
   const displayName =
     (displayEmail ? displayEmail.split("@")[0] : null) ?? user.name
   const avatarInitial =
@@ -81,7 +88,7 @@ export function NavUser({
                   {displayEmail}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <IconLogout className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

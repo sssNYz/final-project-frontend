@@ -9,8 +9,8 @@ import { apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -36,6 +36,10 @@ export default function Page() {
   const [rows, setRows] = useState<AccountRow[]>([])
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined)
   const [toDate, setToDate] = useState<Date | undefined>(undefined)
+  const [fromDateInput, setFromDateInput] = useState<Date | undefined>(
+    undefined,
+  )
+  const [toDateInput, setToDateInput] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -124,99 +128,88 @@ export default function Page() {
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader
-            title="ปริมาณข้อมูลในระบบ"
-            description="สรุปจำนวนข้อมูลประวัติการรับประทานยาของผู้ใช้ในระบบ"
-          />
-          <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-            <Card className="shadow-sm">
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
-                  <span>วันที่รับประทานยา</span>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
-                          >
-                            <span>
-                              {fromDate
-                                ? `${fromDate.getDate()} ${fromDate.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "long" },
-                              )} ${fromDate.getFullYear() + 543}`
-                                : "เลือกวันที่เริ่มต้น"}
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-2" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={fromDate}
-                            onSelect={setFromDate}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <span>ถึง</span>
-                    <div className="relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex w-40 items-center justify-between rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-800"
-                          >
-                            <span>
-                              {toDate
-                                ? `${toDate.getDate()} ${toDate.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "long" },
-                              )} ${toDate.getFullYear() + 543}`
-                                : "เลือกวันที่สิ้นสุด"}
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-2" side="bottom">
-                          <Calendar
-                            mode="single"
-                            selected={toDate}
-                            onSelect={setToDate}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
+          <DashboardPageHeader title="ปริมาณข้อมูลในระบบ">
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
+              <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1.5 text-[11px] text-white shadow-sm">
+                <span className="text-xs font-medium">
+                  วันที่รับประทานยา
+                </span>
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex w-32 items-center justify-between rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-100"
+                      >
+                        <span className="truncate">
+                          {fromDateInput
+                            ? `${fromDateInput.getDate()} ${fromDateInput.toLocaleDateString(
+                                "th-TH-u-ca-buddhist",
+                                { month: "short" },
+                              )} ${fromDateInput.getFullYear() + 543}`
+                            : "เริ่มต้น"}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2" side="bottom">
+                      <Calendar
+                        mode="single"
+                        selected={fromDateInput}
+                        onSelect={setFromDateInput}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <span className="text-[10px] text-slate-300">ถึง</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex w-32 items-center justify-between rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-100"
+                      >
+                        <span className="truncate">
+                          {toDateInput
+                            ? `${toDateInput.getDate()} ${toDateInput.toLocaleDateString(
+                                "th-TH-u-ca-buddhist",
+                                { month: "short" },
+                              )} ${toDateInput.getFullYear() + 543}`
+                            : "สิ้นสุด"}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2" side="bottom">
+                      <Calendar
+                        mode="single"
+                        selected={toDateInput}
+                        onSelect={setToDateInput}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <p className="text-sm text-slate-600">
-                  {isLoading ? (
-                    <span>กำลังโหลดข้อมูล...</span>
-                  ) : (
-                    <>
-                      พบรายการ{" "}
-                      <span className="font-semibold">
-                        {rows.length}
-                      </span>{" "}
-                      บัญชี
-                    </>
-                  )}
-                </p>
-                {loadError && (
-                  <p className="text-xs text-red-500">{loadError}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                <AccountUsageTable
-                  rows={rows}
-                  selectable
-                  onDeleteSelected={handleDeleteSelected}
-                />
-              </CardContent>
-            </Card>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="ml-1 h-7 rounded-full bg-sky-500 px-3 text-[11px] font-semibold text-white hover:bg-sky-600"
+                  onClick={() => {
+                    setFromDate(fromDateInput)
+                    setToDate(toDateInput)
+                  }}
+                >
+                  ค้นหา
+                </Button>
+              </div>
+            </div>
+          </DashboardPageHeader>
+          <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+            {loadError && (
+              <p className="text-xs text-red-500">{loadError}</p>
+            )}
+            <section>
+              <AccountUsageTable
+                rows={rows}
+                selectable
+                onDeleteSelected={handleDeleteSelected}
+              />
+            </section>
           </div>
         </main>
       </SidebarInset>

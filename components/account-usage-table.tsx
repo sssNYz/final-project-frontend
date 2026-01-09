@@ -35,19 +35,20 @@ export function AccountUsageTable({
   const [selectedNames, setSelectedNames] = useState<string[]>([])
 
   // คำนวณจำนวนหน้า และแบ่งข้อมูลตาม pageSize
-  const { totalPages, paginatedRows } = useMemo(() => {
+  const { totalPages, safePage, paginatedRows } = useMemo(() => {
     const total = Math.max(1, Math.ceil(rows.length / pageSize))
-    const safePage = Math.min(currentPage, total)
-    const startIndex = (safePage - 1) * pageSize
+    const page = Math.min(currentPage, total)
+    const startIndex = (page - 1) * pageSize
     const endIndex = startIndex + pageSize
     return {
       totalPages: total,
+      safePage: page,
       paginatedRows: rows.slice(startIndex, endIndex),
     }
   }, [rows, pageSize, currentPage])
 
-  const canGoPrev = currentPage > 1
-  const canGoNext = currentPage < totalPages
+  const canGoPrev = safePage > 1
+  const canGoNext = safePage < totalPages
 
   // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
@@ -85,7 +86,7 @@ export function AccountUsageTable({
 
   return (
     <>
-      <Table>
+      <Table className="border border-slate-200 bg-white">
         <TableHeader>
           <TableRow className="bg-slate-700">
             {selectable && (
@@ -146,20 +147,17 @@ export function AccountUsageTable({
         </TableBody>
       </Table>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
-        {selectable && (
+        <span className="text-xs text-slate-600">
+          พบข้อมูลบัญชี{" "}
+          <span className="font-semibold text-slate-800">
+            {rows.length}
+          </span>{" "}
+          รายการ · หน้า {safePage} จาก {totalPages}
+        </span>
+        <div className="flex flex-1 items-center justify-center gap-3">
           <button
             type="button"
-            onClick={deleteSelected}
-            disabled={!hasSelection}
-            className="rounded-full border border-orange-400 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-200 disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            ลบรายการที่เลือก ({selectedNames.length})
-          </button>
-        )}
-        <div className="flex flex-1 items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => goToPage(currentPage - 1)}
+            onClick={() => goToPage(safePage - 1)}
             disabled={!canGoPrev}
             className="text-sky-700 disabled:text-slate-400 disabled:hover:underline-none hover:underline"
           >
@@ -168,7 +166,7 @@ export function AccountUsageTable({
           <div className="flex items-center gap-1">
             {Array.from({ length: totalPages }, (_, index) => {
               const page = index + 1
-              const isActive = page === currentPage
+              const isActive = page === safePage
               return (
                 <button
                   key={page}
@@ -187,13 +185,23 @@ export function AccountUsageTable({
           </div>
           <button
             type="button"
-            onClick={() => goToPage(currentPage + 1)}
+            onClick={() => goToPage(safePage + 1)}
             disabled={!canGoNext}
             className="text-sky-700 disabled:text-slate-400 disabled:hover:underline-none hover:underline"
           >
             ถัดไป
           </button>
         </div>
+        {selectable && (
+          <button
+            type="button"
+            onClick={deleteSelected}
+            disabled={!hasSelection}
+            className="rounded-full border border-orange-400 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-200 disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
+          >
+            ลบรายการที่เลือก ({selectedNames.length})
+          </button>
+        )}
       </div>
     </>
   )
