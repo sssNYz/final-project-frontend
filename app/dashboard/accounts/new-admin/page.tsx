@@ -30,6 +30,7 @@ export default function NewAdminPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [status, setStatus] = useState<"active" | "inactive">("active")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -58,7 +59,11 @@ export default function NewAdminPage() {
       const res = await fetch(apiUrl("/api/admin/v1/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          active: status === "active",
+        }),
       })
 
       if (!res.ok) {
@@ -97,14 +102,14 @@ export default function NewAdminPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  <FieldGroup className="space-y-4">
+                  <FieldGroup className="gap-4">
                     <Field>
                       <Input
                         id="admin-email"
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="email"
+                        placeholder="Email"
                         required
                         disabled={isLoading}
                         className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
@@ -138,6 +143,39 @@ export default function NewAdminPage() {
                       <FieldDescription className="mt-1 text-center text-[11px] text-slate-500">
                         รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร
                       </FieldDescription>
+                    </Field>
+                    <Field>
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <span className="text-xs text-slate-600">
+                          สถานะการใช้งาน
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStatus((prev) =>
+                              prev === "active" ? "inactive" : "active",
+                            )
+                          }
+                          disabled={isLoading}
+                          className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold shadow-sm transition-colors ${
+                            status === "active"
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : "border-red-500 bg-red-500 text-white"
+                          }`}
+                          aria-pressed={status === "active"}
+                        >
+                          <span>{status === "active" ? "ON" : "OFF"}</span>
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
+                            <span
+                              className={`h-3 w-3 rounded-full ${
+                                status === "active"
+                                  ? "bg-emerald-500"
+                                  : "bg-red-500"
+                              }`}
+                            />
+                          </span>
+                        </button>
+                      </div>
                     </Field>
                     {error && (
                       <p className="text-center text-sm text-red-500">

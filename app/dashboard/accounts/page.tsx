@@ -237,101 +237,97 @@ export default function AccountsPage() {
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader title="บัญชีผู้ใช้งาน">
-            <div className="flex w-full items-end gap-3 overflow-x-auto pb-1">
-              <div className="flex flex-1 items-end justify-center gap-3">
-                <div className="flex min-w-[320px] max-w-lg flex-1 flex-col gap-1">
-                  <span className="text-[11px] text-transparent">ค้นหา</span>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="ค้นหาด้วยอีเมล"
-                      value={searchEmailInput}
-                      onChange={(event) =>
-                        setSearchEmailInput(event.target.value)
-                      }
-                      className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
-                      onClick={() => {
-                        setRoleFilter(roleFilterInput)
-                        setStatusFilter(statusFilterInput)
-                        setSearchEmail(searchEmailInput)
-                        setCurrentPage(1)
-                      }}
-                      aria-label="ค้นหาบัญชีผู้ใช้งาน"
-                    >
-                      <Search className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-600">
-                      สิทธิการใช้งาน
-                    </span>
-                    <Select
-                      value={roleFilterInput}
-                      onValueChange={(value) =>
-                        setRoleFilterInput(value as "all" | AccountRole)
-                      }
-                    >
-                      <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
-                        <SelectValue placeholder="ทั้งหมด" />
-                      </SelectTrigger>
-                      <SelectContent align="start">
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                        <SelectItem value="member">สมาชิก</SelectItem>
-                      </SelectContent>
-                    </Select>
+        <SidebarInset>
+          <SiteHeader />
+          <main className="flex flex-1 flex-col bg-background">
+            <DashboardPageHeader title="บัญชีผู้ใช้งาน">
+              <div className="flex w-full max-w-5xl items-end gap-3 overflow-x-auto">
+                <div className="flex flex-1 items-end justify-center gap-3">
+                  <div className="flex min-w-[320px] max-w-lg flex-1 flex-col gap-1">
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="ค้นหาด้วยอีเมล"
+                        value={searchEmailInput}
+                        onChange={(event) =>
+                          setSearchEmailInput(event.target.value)
+                        }
+                        className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
+                        onClick={() => {
+                          setRoleFilter(roleFilterInput)
+                          setStatusFilter(statusFilterInput)
+                          setSearchEmail(searchEmailInput)
+                          setCurrentPage(1)
+                        }}
+                        aria-label="ค้นหาบัญชีผู้ใช้งาน"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-600">
-                      สถานะการใช้งาน
-                    </span>
-                    <Select
-                      value={statusFilterInput}
-                      onValueChange={(value) =>
-                        setStatusFilterInput(
-                          value as "all" | "active" | "inactive",
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
-                        <SelectValue placeholder="ทั้งหมด" />
-                      </SelectTrigger>
-                      <SelectContent align="start">
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="active">ON</SelectItem>
-                        <SelectItem value="inactive">OFF</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-600">
+                        สิทธิการใช้งาน
+                      </span>
+                      <Select
+                        value={roleFilterInput}
+                        onValueChange={(value) =>
+                          setRoleFilterInput(value as "all" | AccountRole)
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
+                          <SelectValue placeholder="ทั้งหมด" />
+                        </SelectTrigger>
+                        <SelectContent align="start">
+                          <SelectItem value="all">ทั้งหมด</SelectItem>
+                          <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                          <SelectItem value="member">สมาชิก</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-600">
+                        สถานะการใช้งาน
+                      </span>
+                      <Select
+                        value={statusFilterInput}
+                        onValueChange={(value) =>
+                          setStatusFilterInput(
+                            value as "all" | "active" | "inactive",
+                          )
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
+                          <SelectValue placeholder="ทั้งหมด" />
+                        </SelectTrigger>
+                        <SelectContent align="start">
+                          <SelectItem value="all">ทั้งหมด</SelectItem>
+                          <SelectItem value="active">ON</SelectItem>
+                          <SelectItem value="inactive">OFF</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
+                <div className="flex min-w-[160px] flex-col gap-1 ml-10">
+                  <Button
+                    size="sm"
+                    className="ml-auto h-9 w-full rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
+                    asChild
+                  >
+                    <a href="/dashboard/accounts/new-admin">
+                      + เพิ่มบัญชีผู้ดูแลระบบ
+                    </a>
+                  </Button>
+                </div>
               </div>
-              <div className="flex min-w-[160px] flex-col gap-1">
-                <span className="text-[11px] text-transparent">
-                  เพิ่มบัญชี
-                </span>
-                <Button
-                  size="sm"
-                  className="ml-auto h-9 w-full rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
-                  asChild
-                >
-                  <a href="/dashboard/accounts/new-admin">
-                    + เพิ่มบัญชีผู้ดูแลระบบ
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </DashboardPageHeader>
-          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+            </DashboardPageHeader>
+            <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             {loadError && (
               <p className="text-sm text-red-500">{loadError}</p>
             )}

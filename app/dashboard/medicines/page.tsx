@@ -5,6 +5,7 @@ import type { CSSProperties, FormEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { FileText, Pill, Search, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -325,7 +326,7 @@ export default function MedicinesPage() {
 
     // ต้องกรอกชื่อสามัญยา (ไทย/อังกฤษ) อย่างน้อยสำหรับการเพิ่ม/แก้ไข
     if (!data.genericNameTh || !data.genericNameEn) {
-      window.alert("กรุณากรอกชื่อสามัญยา (ไทย) และชื่อสามัญยา (อังกฤษ)")
+      toast.error("กรุณากรอกชื่อสามัญยา (ไทย) และชื่อสามัญยา (อังกฤษ)")
       return
     }
 
@@ -389,7 +390,7 @@ export default function MedicinesPage() {
         const message =
           (payload && (payload.error as string | undefined)) ||
           "ไม่สามารถบันทึกข้อมูลยาได้"
-        window.alert(message)
+        toast.error(message)
         return
       }
 
@@ -413,7 +414,7 @@ export default function MedicinesPage() {
         | null
 
       if (!apiMedicine) {
-        window.alert("บันทึกข้อมูลยาไม่สำเร็จ: รูปแบบข้อมูลไม่ถูกต้อง")
+        toast.error("บันทึกข้อมูลยาไม่สำเร็จ: รูปแบบข้อมูลไม่ถูกต้อง")
         return
       }
 
@@ -449,9 +450,13 @@ export default function MedicinesPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
+
+      toast.success(
+        isCreate ? "เพิ่มข้อมูลยาเรียบร้อยแล้ว" : "แก้ไขข้อมูลยาเรียบร้อยแล้ว",
+      )
     } catch (error) {
       console.error("Error saving medicine:", error)
-      window.alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลยา")
+      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลยา")
     }
   }
 
@@ -580,7 +585,7 @@ export default function MedicinesPage() {
               <Button
                 size="sm"
                 type="button"
-                className="ml-auto h-9 rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
+                className="ml-10  rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
                 onClick={openCreateForm}
               >
                 + เพิ่มยาใหม่
@@ -695,7 +700,7 @@ export default function MedicinesPage() {
                           <label className="text-xs text-slate-600">
                             ชื่อการค้ายา
                           </label>
-                          <Input
+                          <textarea
                             value={formValues.brandName}
                             onChange={(event) =>
                               handleFormChange(
@@ -703,7 +708,7 @@ export default function MedicinesPage() {
                                 event.target.value,
                               )
                             }
-                            className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
                             placeholder="เช่น Tylenol"
                           />
                         </div>
@@ -733,8 +738,8 @@ export default function MedicinesPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 space-y-3">
-                      <div className="grid gap-3 md:grid-cols-2">
+                    <div className="mt-4 space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-slate-600">
                             ข้อบ่งใช้

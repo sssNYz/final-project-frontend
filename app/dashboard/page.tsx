@@ -129,8 +129,8 @@ export default function Page() {
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
           <DashboardPageHeader title="ปริมาณข้อมูลในระบบ">
-            <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto">
-              <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1.5 text-[11px] text-white shadow-sm">
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto text-[11px] text-slate-700">
+              <div className="flex items-center gap-2">
                 <span className="text-xs font-medium">
                   วันที่รับประทานยา
                 </span>
@@ -139,7 +139,7 @@ export default function Page() {
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="flex w-32 items-center justify-between rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-100"
+                        className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
                       >
                         <span className="truncate">
                           {fromDateInput
@@ -159,12 +159,12 @@ export default function Page() {
                       />
                     </PopoverContent>
                   </Popover>
-                  <span className="text-[10px] text-slate-300">ถึง</span>
+                  <span className="text-[10px] text-slate-500">ถึง</span>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="flex w-32 items-center justify-between rounded-full bg-slate-800 px-3 py-1 text-[11px] text-slate-100"
+                        className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
                       >
                         <span className="truncate">
                           {toDateInput

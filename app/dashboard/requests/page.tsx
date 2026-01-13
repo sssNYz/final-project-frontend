@@ -433,17 +433,16 @@ export default function RequestsPage() {
                 </div>
 
                 {/* แคปซูลเลือกช่วงวันที่ (ต่อท้าย dropdown) */}
-                <div className="flex items-center gap-2 rounded-full bg-slate-900/90 px-4 py-1.5 text-[11px] text-slate-100 shadow-sm">
-                  <span className="mr-1 font-medium">วันที่ส่งคำร้อง</span>
-                  <div className="flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5">
-                    <span className="mr-1 text-[11px] text-slate-200">
-                      เริ่มต้น
-                    </span>
+                <div className="flex items-center gap-2 text-[11px] text-slate-700 ml-10">
+                  <span className="mr-1 text-xs font-medium">
+                    วันที่ส่งคำร้อง
+                  </span>
+                  <div className="flex items-center gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="flex w-28 items-center justify-between rounded-full bg-slate-900 px-3 py-1 text-[11px] text-slate-100"
+                          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
                         >
                           <span className="truncate">
                             {fromDateInput
@@ -463,14 +462,12 @@ export default function RequestsPage() {
                         />
                       </PopoverContent>
                     </Popover>
-                    <span className="mx-1 text-[11px] text-slate-300">
-                      ถึง
-                    </span>
+                    <span className="text-[10px] text-slate-500">ถึง</span>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="flex w-28 items-center justify-between rounded-full bg-slate-900 px-3 py-1 text-[11px] text-slate-100"
+                          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
                         >
                           <span className="truncate">
                             {toDateInput
