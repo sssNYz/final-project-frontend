@@ -713,57 +713,65 @@ export default function RequestsPage() {
                   >
                     <X className="h-4 w-4" />
                   </button>
-                  <h2 className="mb-4 text-center text-lg font-semibold">
+                  <h2 className="mt-2 text-center text-lg font-semibold">
                     คำร้องจากผู้ใช้
                   </h2>
-                  <div className="space-y-4 rounded-3xl bg-white/5 p-4 text-xs">
-                    <div className="rounded-2xl bg-white/90 px-4 py-3 text-center text-xs font-semibold text-slate-800">
+                  <div className="mb-4 mt-2 flex justify-center">
+                    <span
+                      className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold ${STATUS_BADGE_CLASSES[activeRequest.status]}`}
+                    >
                       STATUS :{" "}
-                      <span className="text-sky-700">
+                      <span className="ml-1">
                         {STATUS_LABELS[activeRequest.status]}
                       </span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <div className="font-semibold">
-                          อีเมลผู้ส่งคำร้อง
+                    </span>
+                  </div>
+                  <div className="space-y-3 bg-white/5 p-4 text-xs">
+                    <div className="space-y-2">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            อีเมลผู้ส่งคำร้อง
+                          </div>
+                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
+                            {activeRequest.email}
+                          </div>
                         </div>
-                        <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                          {activeRequest.email}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="font-semibold">
-                          วันที่ส่งคำร้อง
-                        </div>
-                        <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                          {formatDisplayDate(activeRequest.submittedDate)}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="font-semibold">
-                          หมวดหมู่คำร้อง
-                        </div>
-                        <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                          {CATEGORY_LABELS[activeRequest.category]}
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            วันที่ส่งคำร้อง
+                          </div>
+                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
+                            {formatDisplayDate(activeRequest.submittedDate)}
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <div className="font-semibold">ชื่อหัวข้อ</div>
-                        <div className="rounded-full bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                          {activeRequest.subject}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <div className="font-semibold">ชื่อหัวข้อ</div>
+                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
+                            {activeRequest.subject}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            หมวดหมู่คำร้อง
+                          </div>
+                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
+                            {CATEGORY_LABELS[activeRequest.category]}
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="font-semibold">
                           เนื้อหาคำร้อง
                         </div>
-                        <div className="min-h-[96px] rounded-2xl bg-white/90 px-4 py-3 text-[11px] text-slate-800">
+                        <div className="bg-white/90 px-4 py-3 text-[11px] text-slate-800">
                           {activeRequest.content}
                         </div>
                       </div>
                     </div>
-                    <div className="flex h-40 items-center justify-center rounded-3xl bg-white">
+                    <div className="flex h-40 items-center justify-center bg-white">
                       {/* ถ้ามีรูปแนบมากับคำร้อง ใช้รูปนั้น ถ้าไม่มีก็ใช้รูปยาตัวอย่าง */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -777,25 +785,25 @@ export default function RequestsPage() {
                         className="h-full w-full max-w-[200px] object-contain"
                       />
                     </div>
-                  </div>
-                  {activeRequest.status === "pending" && (
-                    <div className="mt-6 flex items-center justify-between gap-4">
-                      <Button
-                        type="button"
-                        onClick={() => resolveFromDetail("rejected")}
-                        className="flex-1 rounded-full bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
-                      >
-                        ปฏิเสธ
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => resolveFromDetail("completed")}
-                        className="flex-1 rounded-full bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
-                      >
-                        เสร็จสิ้น
-                      </Button>
                     </div>
-                  )}
+                    {activeRequest.status === "pending" && (
+                      <div className="mt-6 flex items-center justify-between gap-4">
+                        <Button
+                          type="button"
+                          onClick={() => resolveFromDetail("rejected")}
+                          className="flex-1 rounded-none bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
+                        >
+                          ปฏิเสธ
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => resolveFromDetail("completed")}
+                          className="flex-1 rounded-none bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
+                        >
+                          เสร็จสิ้น
+                        </Button>
+                      </div>
+                    )}
                 </div>
               </div>
             )}

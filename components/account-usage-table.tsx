@@ -27,7 +27,7 @@ type Props = {
 // ตารางสรุปปริมาณการใช้งานต่อบัญชี พร้อมแบ่งหน้าและเลือกหลายรายการได้
 export function AccountUsageTable({
   rows,
-  pageSize = 5,
+  pageSize = 10,
   selectable = false,
   onDeleteSelected,
 }: Props) {
