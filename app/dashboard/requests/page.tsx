@@ -1,15 +1,16 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
-import { FileText, Image as ImageIcon, Search, X } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, X } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchButton } from "@/components/ui/search-button"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -35,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { apiUrl } from "@/lib/apiClient"
 
 type RequestStatus = "pending" | "rejected" | "completed"
 
@@ -78,90 +80,78 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
 
 const PAGE_SIZE = 10
 
-const initialRequests: RequestRow[] = [
-  {
-    id: "REQ-2025-0001",
-    email: "Sunny@gmail.com",
-    category: "usage-problem",
-    status: "pending",
-    submittedDate: "2025-04-02",
-    subject: "เพิ่มบัญชีผู้ใช้ไม่ได้",
-    content: "กดเพิ่มบัญชีผู้ใช้ไม่ได้ กรุณาช่วยตรวจสอบให้ด้วยค่ะ",
-  },
-  {
-    id: "REQ-2025-0002",
-    email: "Dook@gmail.com",
-    category: "usage-problem",
-    status: "pending",
-    submittedDate: "2025-05-02",
-    subject: "ข้อมูลการใช้งานไม่อัปเดต",
-    content: "รายละเอียดการใช้งานไม่อัปเดตหลังจากเพิ่มข้อมูลใหม่",
-  },
-  {
-    id: "REQ-2025-0003",
-    email: "Deer@gmail.com",
-    category: "feature",
-    status: "rejected",
-    submittedDate: "2025-06-19",
-    subject: "เสนอเพิ่มฟังก์ชันแจ้งเตือน",
-    content: "อยากให้แอปมีการแจ้งเตือนก่อนเวลารับประทานยา 30 นาที",
-  },
-  {
-    id: "REQ-2025-0004",
-    email: "Cartoon@gmail.com",
-    category: "feature",
-    status: "completed",
-    submittedDate: "2025-01-25",
-    subject: "เพิ่มปุ่มลัดดูประวัติ",
-    content: "ขอปุ่มลัดสำหรับดูประวัติการรับประทานยาหน้าแรก",
-  },
-  {
-    id: "REQ-2025-0005",
-    email: "user1@example.com",
-    category: "data-info",
-    status: "pending",
-    submittedDate: "2025-04-10",
-    subject: "ขอข้อมูลยาเพิ่มเติม",
-    content: "ต้องการรายละเอียดผลข้างเคียงของยาที่ใช้อยู่",
-  },
-  {
-    id: "REQ-2025-0006",
-    email: "user2@example.com",
-    category: "data-info",
-    status: "completed",
-    submittedDate: "2025-03-28",
-    subject: "ขอส่งออกข้อมูลการรักษา",
-    content: "ต้องการไฟล์สรุปประวัติการรับประทานยาเพื่อไปพบแพทย์",
-  },
-  {
-    id: "REQ-2025-0007",
-    email: "user3@example.com",
-    category: "other",
-    status: "rejected",
-    submittedDate: "2025-02-14",
-    subject: "ลบประวัติการใช้งาน",
-    content: "ต้องการลบประวัติการใช้งานทั้งหมดจากระบบ",
-  },
-  {
-    id: "REQ-2025-0008",
-    email: "user4@example.com",
-    category: "usage-problem",
-    status: "pending",
-    submittedDate: "2025-05-20",
-    subject: "แอปเด้งออกเอง",
-    content: "แอปปิดตัวเองอัตโนมัติเมื่อกดเข้าเมนูดูประวัติยา",
-  },
-]
+const initialRequests: RequestRow[] = []
+
+function normalizeStatus(value?: string | null): RequestStatus {
+  const normalized = (value ?? "").toLowerCase()
+  if (normalized.includes("reject")) return "rejected"
+  if (normalized.includes("complete") || normalized.includes("done")) {
+    return "completed"
+  }
+  return "pending"
+}
+
+function normalizeCategory(value?: string | null): RequestCategory {
+  const normalized = (value ?? "").toLowerCase()
+  if (normalized.includes("data") || normalized.includes("info")) {
+    return "data-info"
+  }
+  if (normalized.includes("usage") || normalized.includes("problem")) {
+    return "usage-problem"
+  }
+  if (normalized.includes("feature")) return "feature"
+  return "other"
+}
+
+function normalizeDate(value: unknown): string {
+  if (!value) return ""
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  if (typeof value === "number") {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime())
+      ? ""
+      : date.toISOString().slice(0, 10)
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed) return ""
+    const isoMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}/)
+    if (isoMatch) return trimmed.slice(0, 10)
+    const asNumber = Number(trimmed)
+    if (!Number.isNaN(asNumber)) {
+      const date = new Date(asNumber)
+      return Number.isNaN(date.getTime())
+        ? ""
+        : date.toISOString().slice(0, 10)
+    }
+    const date = new Date(trimmed)
+    return Number.isNaN(date.getTime())
+      ? trimmed
+      : date.toISOString().slice(0, 10)
+  }
+  return ""
+}
 
 // หน้า Dashboard > รายการคำร้องจากผู้ใช้
-// ใช้ดู/กรองคำร้องตามหมวดหมู่ สถานะ ช่วงวันที่ และอีเมล พร้อมทั้งเปิดดูรายละเอียดคำร้องทีละรายการ
+// แสดงตารางรายการคำร้อง พร้อมตัวกรองและสถานะคำร้อง
+function resolveImageUrl(value: unknown) {
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined // ถ้าเป็นค่าว่างให้คืนค่า undefined
+  if (/^https?:\/\//i.test(trimmed)) return trimmed   // ตรวจสอบว่าเป็น URL เต็มรูปแบบหรือไม่
+  const normalized = trimmed.replace(/^\/+/, "") // ลบ / ข้างหน้าออก
+  return apiUrl(`/${normalized}`) 
+}
+
+// ฟอร์แมตวันที่เป็นรูปแบบวันที่ภาษาไทย
 function formatDisplayDate(isoDate: string) {
   const [yearStr, monthStr, dayStr] = isoDate.split("-")
   const year = Number(yearStr)
   const month = Number(monthStr)
   const day = Number(dayStr)
-  if (!year || !month || !day) return isoDate
+  // ตรวจสอบความถูกต้องของวันที่
 
+  if (!year || !month || !day) return isoDate
   const thaiMonths = [
     "มกราคม",
     "กุมภาพันธ์",
@@ -176,10 +166,10 @@ function formatDisplayDate(isoDate: string) {
     "พฤศจิกายน",
     "ธันวาคม",
   ]
-
+// แปลงเดือนเป็นชื่อเดือน
   const monthName = thaiMonths[month - 1]
   if (!monthName) return isoDate
-
+// คำนวณปีพุทธศักราช
   const buddhistYear = year + 543
   return `${day} ${monthName} ${buddhistYear}`
 }
@@ -188,6 +178,8 @@ function formatDisplayDate(isoDate: string) {
 export default function RequestsPage() {
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<
     "all" | RequestCategory
   >("all")
@@ -212,6 +204,141 @@ export default function RequestsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
+
+  useEffect(() => {
+    async function fetchRequests() {
+      try {
+        setIsLoading(true)
+        setLoadError(null)
+
+        const accessToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("accessToken")
+            : null
+        const headers: Record<string, string> = {}
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`
+        }
+
+        const res = await fetch(apiUrl("/api/admin/v1/user-request/list"), {
+          headers,
+        })
+        const data = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          setLoadError(
+            (data && (data.error as string | undefined)) ||
+              "โหลดคำร้องไม่สำเร็จ",
+          )
+          return
+        }
+
+        const items = (data?.requests ??
+          data?.items ??
+          data?.data ??
+          []) as Array<Record<string, unknown>>
+
+        const mapped = items.map((item, index) => {
+          const rawId =
+            (item.id as string | number | undefined) ??
+            (item.requestId as string | number | undefined) ??
+            (item.request_id as string | number | undefined)
+          const id = rawId ? String(rawId) : `REQ-${index + 1}`
+
+          const userEmail =
+            typeof item.user === "object" && item.user !== null
+              ? (item.user as { email?: string }).email
+              : undefined
+
+          const email =
+            (item.email as string | undefined) ??
+            userEmail ??
+            (item.userEmail as string | undefined) ??
+            (item.senderEmail as string | undefined) ??
+            ""
+
+          const category = normalizeCategory(
+            (item.category as string | undefined) ??
+              (item.requestType as string | undefined) ??
+              (item.type as string | undefined),
+          )
+
+          const status = normalizeStatus(
+            (item.status as string | undefined) ??
+              (item.requestStatus as string | undefined),
+          )
+
+          const submittedDate = normalizeDate(
+            item.submittedDate ??
+              item.createdAt ??
+              item.created_at ??
+              item.requestedAt,
+          )
+
+          const subject =
+            (item.subject as string | undefined) ??
+            (item.requestTitle as string | undefined) ??
+            (item.title as string | undefined) ??
+            "-"
+
+          const content =
+            (item.content as string | undefined) ??
+            (item.requestDetails as string | undefined) ??
+            (item.message as string | undefined) ??
+            ""
+
+          const imageUrl = resolveImageUrl(
+            (item.picture as string | undefined) ??
+              (item.imageUrl as string | undefined) ??
+              (item.image_url as string | undefined) ??
+              (item.attachmentUrl as string | undefined),
+          )
+
+          return {
+            id,
+            email,
+            category,
+            status,
+            submittedDate,
+            subject,
+            content,
+            imageUrl,
+          } satisfies RequestRow
+        })
+
+        setRequests(mapped)
+      } catch {
+        setLoadError("เกิดข้อผิดพลาดในการโหลดคำร้อง")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRequests()
+  }, [])
+
+  // ตั้งค่า default ให้ช่วงวันที่เป็นวันที่เก่าที่สุดและใหม่ที่สุดจากรายการคำร้อง
+  useEffect(() => {
+    if (!requests.length) return
+    if (fromDateInput || toDateInput) return
+
+    const timestamps = requests
+      .map((request) => new Date(request.submittedDate).getTime())
+      .filter((time) => !Number.isNaN(time))
+
+    if (!timestamps.length) return
+
+    const minTime = Math.min(...timestamps)
+    const maxTime = Math.max(...timestamps)
+
+    const minDate = new Date(minTime)
+    const maxDate = new Date(maxTime)
+
+    setFromDate(minDate)
+    setFromDateInput(minDate)
+    setToDate(maxDate)
+    setToDateInput(maxDate)
+  }, [requests, fromDateInput, toDateInput])
 
   // ฟิลเตอร์หลักตามหมวดหมู่, อีเมล, และช่วงวันที่ (ยังไม่ใช้สถานะ)
   const baseFilteredRequests = useMemo(() => {
@@ -311,12 +438,48 @@ export default function RequestsPage() {
     setCurrentPage(page)
   }
 
-  function updateStatus(id: string, status: RequestStatus) {
-    setRequests((current) =>
-      current.map((request) =>
-        request.id === id ? { ...request, status } : request,
-      ),
-    )
+  async function updateStatus(id: string, status: RequestStatus) {
+    setLoadError(null)
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await fetch(
+        apiUrl(`/api/admin/v1/user-request/${encodeURIComponent(id)}`),
+        {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ status }),
+        },
+      )
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "อัปเดตสถานะไม่สำเร็จ",
+        )
+        return false
+      }
+
+      setRequests((current) =>
+        current.map((request) =>
+          request.id === id ? { ...request, status } : request,
+        ),
+      )
+      return true
+    } catch {
+      setLoadError("เกิดข้อผิดพลาดในการอัปเดตสถานะ")
+      return false
+    }
   }
 
   function openRequestDetail(request: RequestRow) {
@@ -327,10 +490,14 @@ export default function RequestsPage() {
     setActiveRequest(null)
   }
 
-  function resolveFromDetail(status: Exclude<RequestStatus, "pending">) {
+  async function resolveFromDetail(
+    status: Exclude<RequestStatus, "pending">,
+  ) {
     if (!activeRequest) return
-    updateStatus(activeRequest.id, status)
-    setActiveRequest(null)
+    const ok = await updateStatus(activeRequest.id, status)
+    if (ok) {
+      setActiveRequest(null)
+    }
   }
 
   return (
@@ -346,43 +513,17 @@ export default function RequestsPage() {
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader title="รายการคำร้องจากผู้ใช้">
-            <div className="flex w-full items-end gap-3 overflow-x-auto pb-1">
-              <div className="flex flex-1 items-end justify-center gap-3">
-                {/* กล่องค้นหาอีเมล */}
-                <div className="relative min-w-[260px] max-w-md flex-1">
-                  <Input
-                    type="text"
-                    placeholder="อีเมลผู้ส่งคำร้อง"
-                    value={searchEmailInput}
-                    onChange={(event) =>
-                      setSearchEmailInput(event.target.value)
-                    }
-                    className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
-                    onClick={() => {
-                      setCategoryFilter(categoryFilterInput)
-                      setStatusFilter(statusFilterInput)
-                      setSearchEmail(searchEmailInput)
-                      setFromDate(fromDateInput)
-                      setToDate(toDateInput)
-                      setCurrentPage(1)
-                    }}
-                    aria-label="ค้นหารายการคำร้อง"
-                  >
-                    <Search className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {/* หมวดหมู่ + สถานะ (วางต่อจากช่องค้นหา) */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-slate-600">
-                      หมวดหมู่
-                    </span>
+          <DashboardPageHeader title="รายการคำร้องจากผู้ใช้" />
+          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+              <div className="mt-3 flex w-full flex-wrap items-end gap-4">
+                <div className="flex min-w-[320px] flex-1 flex-col gap-1">
+                  <div className="flex items-center text-[11px] text-slate-600">
+                    <span className="w-28">หมวดหมู่</span>
+                    <span className="w-28 pl-3">สถานะ</span>
+                    <span className="flex-1" />
+                  </div>
+                  <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
                     <Select
                       value={categoryFilterInput}
                       onValueChange={(value) =>
@@ -391,7 +532,7 @@ export default function RequestsPage() {
                         )
                       }
                     >
-                      <SelectTrigger className="h-8 w-auto rounded-full border-none bg-slate-900/80 px-3 text-[11px] font-medium text-white shadow-sm hover:bg-slate-900">
+                      <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                         <SelectValue placeholder="ทั้งหมด" />
                       </SelectTrigger>
                       <SelectContent align="start">
@@ -408,9 +549,7 @@ export default function RequestsPage() {
                         <SelectItem value="other">อื่นๆ</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-slate-600">สถานะ</span>
+                    <div className="h-5 w-px bg-slate-200" />
                     <Select
                       value={statusFilterInput}
                       onValueChange={(value) =>
@@ -419,7 +558,7 @@ export default function RequestsPage() {
                         )
                       }
                     >
-                      <SelectTrigger className="h-8 w-auto rounded-full border-none bg-slate-900/80 px-3 text-[11px] font-medium text-white shadow-sm hover:bg-slate-900">
+                      <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                         <SelectValue placeholder="ทั้งหมด" />
                       </SelectTrigger>
                       <SelectContent align="start">
@@ -429,29 +568,45 @@ export default function RequestsPage() {
                         <SelectItem value="completed">เสร็จสิ้น</SelectItem>
                       </SelectContent>
                     </Select>
+                    <div className="h-5 w-px bg-slate-200" />
+                    <Input
+                      type="text"
+                      placeholder="อีเมลผู้ส่งคำร้อง"
+                      value={searchEmailInput}
+                      onChange={(event) =>
+                        setSearchEmailInput(event.target.value)
+                      }
+                      className="h-9 flex-1 rounded-none border-0 bg-transparent px-3 text-xs text-slate-800 placeholder:text-slate-400 shadow-none focus-visible:ring-0"
+                    />
                   </div>
-                </div>
+               
+              </div>
 
-                {/* แคปซูลเลือกช่วงวันที่ (ต่อท้าย dropdown) */}
-                <div className="flex items-center gap-2 text-[11px] text-slate-700 ml-10">
-                  <span className="mr-1 text-xs font-medium">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] text-slate-600">
                     วันที่ส่งคำร้อง
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-700">
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
+                          className="flex h-9 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 shadow-sm"
                         >
-                          <span className="truncate">
-                            {fromDateInput
-                              ? `${fromDateInput.getDate()} ${fromDateInput.toLocaleDateString(
-                                  "th-TH-u-ca-buddhist",
-                                  { month: "short" },
-                                )} ${fromDateInput.getFullYear() + 543}`
-                              : "เริ่มต้น"}
+                          <span className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
+                              <Clock className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="truncate">
+                              {fromDateInput
+                                ? `${fromDateInput.getDate()} ${fromDateInput.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "short" },
+                                  )} ${fromDateInput.getFullYear() + 543}`
+                                : "เริ่มต้น"}
+                            </span>
                           </span>
+                          <CalendarIcon className="h-4 w-4 text-slate-400" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="p-2" side="bottom">
@@ -462,21 +617,29 @@ export default function RequestsPage() {
                         />
                       </PopoverContent>
                     </Popover>
-                    <span className="text-[10px] text-slate-500">ถึง</span>
+                    <span className="px-1 text-[10px] font-medium text-slate-500">
+                      ถึง
+                    </span>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-800 px-4 text-xs text-slate-100"
+                          className="flex h-9 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 shadow-sm"
                         >
-                          <span className="truncate">
-                            {toDateInput
-                              ? `${toDateInput.getDate()} ${toDateInput.toLocaleDateString(
-                                  "th-TH-u-ca-buddhist",
-                                  { month: "short" },
-                                )} ${toDateInput.getFullYear() + 543}`
-                              : "สิ้นสุด"}
+                          <span className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
+                              <Clock className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="truncate">
+                              {toDateInput
+                                ? `${toDateInput.getDate()} ${toDateInput.toLocaleDateString(
+                                    "th-TH-u-ca-buddhist",
+                                    { month: "short" },
+                                  )} ${toDateInput.getFullYear() + 543}`
+                                : "สิ้นสุด"}
+                            </span>
                           </span>
+                          <CalendarIcon className="h-4 w-4 text-slate-400" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="p-2" side="bottom">
@@ -488,11 +651,23 @@ export default function RequestsPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
+                
+              </div>
+                <div className="flex flex-col gap-1">
+                  <SearchButton
+                    onClick={() => {
+                      setCategoryFilter(categoryFilterInput)
+                      setStatusFilter(statusFilterInput)
+                      setSearchEmail(searchEmailInput)
+                      setFromDate(fromDateInput)
+                      setToDate(toDateInput)
+                      setCurrentPage(1)
+                    }}
+                  />
                 </div>
+               
               </div>
             </div>
-          </DashboardPageHeader>
-          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-1 flex-wrap items-stretch gap-3 text-[11px] font-semibold">
@@ -581,6 +756,24 @@ export default function RequestsPage() {
                 </div>
               </div>
 
+              {loadError && (
+                <p className="text-sm text-red-500">{loadError}</p>
+              )}
+              <div className="flex items-center justify-between">
+                {isLoading && (
+                  <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                )}
+                  <div
+                    className={`text-xs font-semibold text-slate-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
+                  >
+                  จำนวนรายการทั้งหมด{" "}
+                  <span className="text-slate-900">
+                    {filteredRequests.length}
+                  </span>{" "}
+                  รายการ
+                </div>
+              </div>
+
               <Table className="border border-slate-200 bg-white">
                     <TableHeader>
                       <TableRow className="bg-slate-700">
@@ -602,7 +795,30 @@ export default function RequestsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedRequests.map((request) => (
+                      {isLoading
+                        ? Array.from({ length: PAGE_SIZE }, (_, index) => (
+                            <TableRow
+                              key={`request-skeleton-${index}`}
+                              className="even:bg-slate-50/60"
+                            >
+                              <TableCell className="px-4 py-3">
+                                <div className="mx-auto h-4 w-28 animate-pulse rounded bg-slate-200" />
+                              </TableCell>
+                              <TableCell className="px-4 py-3">
+                                <div className="mx-auto h-4 w-40 animate-pulse rounded bg-slate-200" />
+                              </TableCell>
+                              <TableCell className="px-4 py-3">
+                                <div className="mx-auto h-4 w-32 animate-pulse rounded bg-slate-200" />
+                              </TableCell>
+                              <TableCell className="px-4 py-3">
+                                <div className="mx-auto h-5 w-24 animate-pulse rounded-full bg-slate-200" />
+                              </TableCell>
+                              <TableCell className="px-4 py-3">
+                                <div className="mx-auto h-8 w-8 animate-pulse rounded-full bg-slate-200" />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        : paginatedRequests.map((request) => (
                         <TableRow
                           key={request.id}
                           className="even:bg-slate-50/60"
@@ -637,13 +853,19 @@ export default function RequestsPage() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {paginatedRequests.length === 0 && (
+                      {!isLoading && paginatedRequests.length === 0 && (
                         <TableRow>
                           <TableCell
                             colSpan={5}
-                            className="py-6 text-center text-sm text-slate-500"
+                            className="py-10 text-center text-sm text-slate-500"
                           >
-                            ไม่พบคำร้องตามเงื่อนไขที่เลือก
+                            <div className="flex flex-col items-center gap-2">
+                              <ImageIcon className="h-8 w-8 text-slate-300" />
+                              <span>ไม่พบข้อมูล</span>
+                              <span className="text-xs text-slate-400">
+                                ไม่พบคำร้องตามเงื่อนไขที่เลือก
+                              </span>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
@@ -651,22 +873,17 @@ export default function RequestsPage() {
                   </Table>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
-                <span className="text-xs text-slate-600">
-                  รายการคำร้องที่พบ{" "}
-                  <span className="font-semibold text-slate-800">
-                    {filteredRequests.length}
-                  </span>{" "}
-                  รายการ · หน้า {safePage} จาก {totalPages}
-                </span>
                 <div className="flex flex-1 items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => goToPage(safePage - 1)}
-                    disabled={!canGoPrev}
-                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                  >
-                    ก่อนหน้า
-                  </button>
+                  {totalPages > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safePage - 1)}
+                      disabled={!canGoPrev}
+                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                    >
+                      ก่อนหน้า
+                    </button>
+                  )}
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, index) => {
                       const page = index + 1
@@ -687,14 +904,16 @@ export default function RequestsPage() {
                       )
                     })}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => goToPage(safePage + 1)}
-                    disabled={!canGoNext}
-                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                  >
-                    ถัดไป
-                  </button>
+                  {totalPages > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safePage + 1)}
+                      disabled={!canGoNext}
+                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                    >
+                      ถัดไป
+                    </button>
+                  )}
                 </div>
               </div>
             </section>

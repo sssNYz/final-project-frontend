@@ -47,7 +47,7 @@ export function NavMain({
                 <SidebarMenuButton
                   asChild
                   tooltip={item.title}
-                  isActive={isActive}
+                  isActive={Boolean(isActive)}
                   size="lg"
                   className="data-[active=true]:bg-gradient-to-r data-[active=true]:from-slate-900 data-[active=true]:via-sky-800 data-[active=true]:to-sky-500 data-[active=true]:text-white data-[active=true]:shadow-sm hover:bg-slate-900/80 hover:text-slate-50"
                 >
@@ -61,8 +61,9 @@ export function NavMain({
                 {item.children && item.children.length > 0 && (
                   <SidebarMenuSub>
                     {item.children.map((child) => {
-                      const isChildActive =
-                        pathname && pathname.startsWith(child.url)
+                      const isChildActive = Boolean(
+                        pathname && pathname.startsWith(child.url),
+                      )
 
                       return (
                         <SidebarMenuSubItem key={child.title}>

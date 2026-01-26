@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react"
 import { useEffect, useMemo, useState } from "react"
 
-import { Search, Trash2, User2 } from "lucide-react"
+import { Trash2, User2 } from "lucide-react"
 
 import { apiUrl } from "@/lib/apiClient"
 
@@ -12,6 +12,7 @@ import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { SearchButton } from "@/components/ui/search-button"
 import {
   Select,
   SelectContent,
@@ -40,6 +41,22 @@ type AdminAccount = {
   role: AccountRole
   active: boolean
   lastLogin: string | null
+}
+
+function formatLastLogin(value: string | null) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const dateLabel = date.toLocaleDateString("th-TH-u-ca-buddhist", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+  const timeLabel = date.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  return `${dateLabel} ${timeLabel}`
 }
 
 const ROLE_LABELS: Record<AccountRole, string> = {
@@ -73,18 +90,18 @@ export default function AccountsPage() {
         setIsLoading(true)
         setLoadError(null)
   
-        // Read token + set header
+// อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
         const accessToken =
           typeof window !== "undefined"
             ? window.localStorage.getItem("accessToken")
             : null
-  
+// เตรียม headers สำหรับเรียก API
         const headers: Record<string, string> = {}
         if (accessToken) {
           headers.Authorization = `Bearer ${accessToken}`
         }
   
-        // Fetch with headers
+// เรียก API เพื่อดึงรายการบัญชีผู้ใช้งาน
         const res = await fetch(apiUrl("/api/admin/v1/users/list"), { headers })
   
         const data = await res.json().catch(() => null)
@@ -96,8 +113,8 @@ export default function AccountsPage() {
           )
           return
         }
-  
-        // Extract accounts from response
+
+        // แปลงข้อมูลที่ได้มาเป็นรูปแบบตาราง
         const items = (data?.accounts ?? []) as {
           userId: number
           email: string
@@ -105,8 +122,7 @@ export default function AccountsPage() {
           active: boolean
           lastLogin: Date | string | null
         }[]
-  
-        // Convert lastLogin Date to string if needed
+        
         const accounts: AdminAccount[] = items.map((item) => ({
           userId: item.userId,
           email: item.email,
@@ -240,47 +256,36 @@ export default function AccountsPage() {
         <SidebarInset>
           <SiteHeader />
           <main className="flex flex-1 flex-col bg-background">
-            <DashboardPageHeader title="บัญชีผู้ใช้งาน">
-              <div className="flex w-full max-w-5xl items-end gap-3 overflow-x-auto">
-                <div className="flex flex-1 items-end justify-center gap-3">
-                  <div className="flex min-w-[320px] max-w-lg flex-1 flex-col gap-1">
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="ค้นหาด้วยอีเมล"
-                        value={searchEmailInput}
-                        onChange={(event) =>
-                          setSearchEmailInput(event.target.value)
-                        }
-                        className="h-9 w-full rounded-full bg-white/90 pr-10 text-xs text-slate-800 placeholder:text-slate-400 shadow-sm"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-sky-600 text-white shadow hover:bg-sky-700"
-                        onClick={() => {
-                          setRoleFilter(roleFilterInput)
-                          setStatusFilter(statusFilterInput)
-                          setSearchEmail(searchEmailInput)
-                          setCurrentPage(1)
-                        }}
-                        aria-label="ค้นหาบัญชีผู้ใช้งาน"
-                      >
-                        <Search className="h-3.5 w-3.5" />
-                      </button>
+            <DashboardPageHeader title="บัญชีผู้ใช้งาน"
+            >
+              <Button
+                size="sm"
+                className="h-9 rounded-md bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
+                asChild
+              >
+                <a href="/dashboard/accounts/new-admin">
+                  + เพิ่มบัญชีผู้ดูแลระบบ
+                </a>
+              </Button>
+            </DashboardPageHeader>
+            <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+            <section>
+              <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+                <div className="mt-3 grid w-full items-end gap-4 md:grid-cols-[minmax(360px,1fr)_auto]">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center text-[11px] text-slate-600">
+                      <span className="w-28">สิทธิการใช้งาน</span>
+                      <span className="w-28 pl-3">สถานะ</span>
+                      <span className="flex-1" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-600">
-                        สิทธิการใช้งาน
-                      </span>
+                    <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
                       <Select
                         value={roleFilterInput}
                         onValueChange={(value) =>
                           setRoleFilterInput(value as "all" | AccountRole)
                         }
                       >
-                        <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
+                        <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                           <SelectValue placeholder="ทั้งหมด" />
                         </SelectTrigger>
                         <SelectContent align="start">
@@ -289,11 +294,7 @@ export default function AccountsPage() {
                           <SelectItem value="member">สมาชิก</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-600">
-                        สถานะการใช้งาน
-                      </span>
+                      <div className="h-5 w-px bg-slate-200" />
                       <Select
                         value={statusFilterInput}
                         onValueChange={(value) =>
@@ -302,7 +303,7 @@ export default function AccountsPage() {
                           )
                         }
                       >
-                        <SelectTrigger className="h-9 w-auto rounded-full border-none bg-slate-900/80 px-4 text-xs font-medium text-white shadow-sm hover:bg-slate-900">
+                        <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                           <SelectValue placeholder="ทั้งหมด" />
                         </SelectTrigger>
                         <SelectContent align="start">
@@ -311,28 +312,47 @@ export default function AccountsPage() {
                           <SelectItem value="inactive">OFF</SelectItem>
                         </SelectContent>
                       </Select>
+                      <div className="h-5 w-px bg-slate-200" />
+                      <Input
+                        type="text"
+                        placeholder="ระบุอีเมลค้นหา..."
+                        value={searchEmailInput}
+                        onChange={(event) =>
+                          setSearchEmailInput(event.target.value)
+                        }
+                        className="h-9 flex-1 rounded-none border-0 bg-transparent px-3 text-xs text-slate-800 placeholder:text-slate-400 shadow-none focus-visible:ring-0"
+                      />
                     </div>
                   </div>
-                </div>
-                <div className="flex min-w-[160px] flex-col gap-1 ml-10">
-                  <Button
-                    size="sm"
-                    className="ml-auto h-9 w-full rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
-                    asChild
-                  >
-                    <a href="/dashboard/accounts/new-admin">
-                      + เพิ่มบัญชีผู้ดูแลระบบ
-                    </a>
-                  </Button>
+                  <div className="flex flex-col gap-1">
+                    <SearchButton
+                      onClick={() => {
+                        setRoleFilter(roleFilterInput)
+                        setStatusFilter(statusFilterInput)
+                        setSearchEmail(searchEmailInput)
+                        setCurrentPage(1)
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-            </DashboardPageHeader>
-            <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
-            {loadError && (
-              <p className="text-sm text-red-500">{loadError}</p>
-            )}
 
-            <section>
+              {loadError && (
+                <p className="mt-3 text-sm text-red-500">{loadError}</p>
+              )}
+              <div className="mb-2 mt-3 flex items-center justify-between">
+                {isLoading ? (
+                  <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                ) : (
+                  <div className="text-xs font-semibold text-slate-700">
+                    จำนวนรายการทั้งหมด{" "}
+                    <span className="text-slate-900">
+                      {filteredAccounts.length}
+                    </span>{" "}
+                    รายการ
+                  </div>
+                )}
+              </div>
               <Table className="border border-slate-200 bg-white">
                 <TableHeader>
                   <TableRow className="bg-slate-700">
@@ -354,66 +374,95 @@ export default function AccountsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedAccounts.map((account) => (
-                    <TableRow
-                      key={account.userId}
-                      className="even:bg-slate-50/70"
-                    >
-                      <TableCell className="px-4 py-3 text-sm font-medium text-slate-800">
-                        {account.email}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                        {ROLE_LABELS[account.role]}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleToggleStatus(account.userId)
-                          }
-                          className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors ${
-                            account.active
-                              ? "border-emerald-500 bg-emerald-500 text-white"
-                              : "border-red-500 bg-red-500 text-white"
-                          }`}
-                          aria-pressed={account.active}
+                  {isLoading
+                    ? Array.from({ length: PAGE_SIZE }, (_, index) => (
+                        <TableRow
+                          key={`account-skeleton-${index}`}
+                          className="even:bg-slate-50/70"
                         >
-                          <span>{account.active ? "ON" : "OFF"}</span>
-                          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
-                            <span
-                              className={`h-2.5 w-2.5 rounded-full ${
+                          <TableCell className="px-4 py-3">
+                            <div className="h-4 w-48 animate-pulse rounded bg-slate-200" />
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="mx-auto h-4 w-24 animate-pulse rounded bg-slate-200" />
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-slate-200" />
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="mx-auto h-4 w-28 animate-pulse rounded bg-slate-200" />
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="mx-auto h-8 w-8 animate-pulse rounded-full bg-slate-200" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : paginatedAccounts.map((account) => (
+                        <TableRow
+                          key={account.userId}
+                          className="even:bg-slate-50/70"
+                        >
+                          <TableCell className="px-4 py-3 text-sm font-medium text-slate-800">
+                            {account.email}
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+                            {ROLE_LABELS[account.role]}
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleToggleStatus(account.userId)
+                              }
+                              className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors ${
                                 account.active
-                                  ? "bg-emerald-500"
-                                  : "bg-red-500"
+                                  ? "border-emerald-500 bg-emerald-500 text-white"
+                                  : "border-red-500 bg-red-500 text-white"
                               }`}
-                            />
-                          </span>
-                        </button>
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                        {account.lastLogin}
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteAccount(account)
-                          }
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
-                          aria-label={`ลบบัญชีผู้ใช้ ${account.email}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                              aria-pressed={account.active}
+                            >
+                              <span>{account.active ? "ON" : "OFF"}</span>
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
+                                <span
+                                  className={`h-2.5 w-2.5 rounded-full ${
+                                    account.active
+                                      ? "bg-emerald-500"
+                                      : "bg-red-500"
+                                  }`}
+                                />
+                              </span>
+                            </button>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+                            {formatLastLogin(account.lastLogin)}
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteAccount(account)
+                              }
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
+                              aria-label={`ลบบัญชีผู้ใช้ ${account.email}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   {!isLoading && paginatedAccounts.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={5}
-                        className="py-6 text-center text-sm text-slate-500"
+                        className="py-10 text-center text-sm text-slate-500"
                       >
-                        ไม่พบบัญชีผู้ใช้ตามเงื่อนไขที่เลือก
+                        <div className="flex flex-col items-center gap-2">
+                          <User2 className="h-8 w-8 text-slate-300" />
+                          <span>ไม่พบข้อมูล</span>
+                          <span className="text-xs text-slate-400">
+                            ลองปรับเงื่อนไขการค้นหาอีกครั้ง
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -421,28 +470,17 @@ export default function AccountsPage() {
               </Table>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
-                <span className="text-xs text-slate-600">
-                  {isLoading ? (
-                    <>กำลังโหลดข้อมูลบัญชี...</>
-                  ) : (
-                    <>
-                      พบข้อมูลบัญชี{" "}
-                      <span className="font-semibold text-slate-800">
-                        {filteredAccounts.length}
-                      </span>{" "}
-                      รายการ · หน้า {safePage} จาก {totalPages}
-                    </>
-                  )}
-                </span>
                 <div className="flex flex-1 items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => goToPage(safePage - 1)}
-                    disabled={!canGoPrev}
-                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                  >
-                    ก่อนหน้า
-                  </button>
+                  {totalPages > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safePage - 1)}
+                      disabled={!canGoPrev}
+                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                    >
+                      ก่อนหน้า
+                    </button>
+                  )}
                   <div className="flex items-center gap-1">
                     {Array.from({ length: totalPages }, (_, index) => {
                       const page = index + 1
@@ -463,14 +501,16 @@ export default function AccountsPage() {
                       )
                     })}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => goToPage(safePage + 1)}
-                    disabled={!canGoNext}
-                    className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
-                  >
-                    ถัดไป
-                  </button>
+                  {totalPages > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => goToPage(safePage + 1)}
+                      disabled={!canGoNext}
+                      className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
+                    >
+                      ถัดไป
+                    </button>
+                  )}
                 </div>
               </div>
             </section>

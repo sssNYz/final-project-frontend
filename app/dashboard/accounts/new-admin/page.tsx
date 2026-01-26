@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 import { apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -55,6 +56,61 @@ export default function NewAdminPage() {
 
     try {
       setIsLoading(true)
+
+      // ตรวจสอบอีเมลซ้ำกับ User_Account ก่อนเรียก signup
+      try {
+// Read token + set header
+        const accessToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("accessToken")
+            : null
+
+        const headers: Record<string, string> = {}
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`
+        }
+
+        const listRes = await fetch(apiUrl("/api/admin/v1/users/list"), {
+          headers,
+        })
+
+        const listData = await listRes.json().catch(() => null)
+
+        if (!listRes.ok) {
+          const message =
+            (listData && (listData.error as string | undefined)) ||
+            "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
+          setError(message)
+          toast.error(message)
+          setIsLoading(false)
+          return
+        }
+
+        const accounts = (listData?.accounts ?? []) as {
+          email?: string
+        }[]
+
+        const emailExists = accounts.some(
+          (account) =>
+            account.email &&
+            account.email.toLowerCase() === email.toLowerCase(),
+        )
+
+        if (emailExists) {
+          const message =
+            "อีเมลนี้มีอยู่ในระบบแล้ว ไม่สามารถใช้ซ้ำได้"
+          setError(message)
+          toast.error(message)
+          setIsLoading(false)
+          return
+        }
+      } catch {
+        const message = "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
+        setError(message)
+        toast.error(message)
+        setIsLoading(false)
+        return
+      }
 
       const res = await fetch(apiUrl("/api/admin/v1/signup"), {
         method: "POST",

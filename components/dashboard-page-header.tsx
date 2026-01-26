@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 type DashboardPageHeaderProps = {
   title: string
   description?: string
+  titleClassName?: string
   className?: string
   children?: React.ReactNode
 }
@@ -14,6 +15,7 @@ type DashboardPageHeaderProps = {
 export function DashboardPageHeader({
   title,
   description,
+  titleClassName,
   className,
   children,
 }: DashboardPageHeaderProps) {
@@ -26,7 +28,12 @@ export function DashboardPageHeader({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+          <h2
+            className={cn(
+              "text-lg font-semibold tracking-tight text-slate-900",
+              titleClassName,
+            )}
+          >
             {title}
           </h2>
           {description && (

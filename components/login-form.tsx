@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Field, FieldGroup } from "@/components/ui/field"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 // ฟอร์มล็อกอินแอดมิน อ่าน token จาก API แล้วเก็บใน localStorage
@@ -37,20 +37,20 @@ export function LoginForm({
 
     try {
       setIsLoading(true)
-
+// เรียก API เพื่อขอล็อกอิน
       const res = await fetch(apiUrl("/api/admin/v1/signin"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
-
+// อ่านผลลัพธ์จาก API
       const data = await res.json()
-
+// ตรวจสอบผลลัพธ์การล็อกอิน
       if (!res.ok) {
         setError(data?.error || "Login failed")
         return
       }
-
+// เก็บ token และข้อมูลผู้ใช้ใน localStorage
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken)
       }
@@ -63,7 +63,7 @@ export function LoginForm({
           (data.user?.email as string | undefined) ?? email,
         )
       }
-
+// นำผู้ใช้ไปยังหน้า Dashboard
       router.push("/dashboard")
     } catch (err) {
       setError("Network error. Please try again.")
@@ -71,7 +71,7 @@ export function LoginForm({
       setIsLoading(false)
     }
   }
-
+// เรนเดอร์ฟอร์มล็อกอิน
   return (
     <div
       className={cn(
@@ -83,17 +83,20 @@ export function LoginForm({
       <Card className="w-full max-w-md rounded-3xl border-none bg-white shadow-lg">
         <CardHeader className="pb-6">
           <CardTitle className="text-center text-2xl font-bold text-slate-900">
-            LogIn
+            เข้าสู่ระบบแอดมิน
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            <FieldGroup className="space-y-4">
+            <FieldGroup className="space-y-2">
               <Field>
+                <FieldLabel htmlFor="email" className="text-xs text-slate-600">
+                  อีเมล
+                </FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Email"
+                  placeholder="กรอกอีเมล"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -102,10 +105,16 @@ export function LoginForm({
                 />
               </Field>
               <Field>
+                <FieldLabel
+                  htmlFor="password"
+                  className="text-xs text-slate-600"
+                >
+                  Password
+                </FieldLabel>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Password"
+                  placeholder="กรอกรหัสผ่าน"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

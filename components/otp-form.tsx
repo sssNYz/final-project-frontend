@@ -1,7 +1,7 @@
 // ... existing code at top ...
 "use client"
 import { apiUrl } from "@/lib/apiClient"
-import { useState, useEffect } from "react"
+import { useState, useEffect, SetStateAction } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GalleryVerticalEnd } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -40,11 +40,13 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     e.preventDefault()
     setError(null)
 
+    // ตรวจสอบค่า email และ otp 
     if (!email) {
       setError("Email is missing")
       return
     }
 
+    // ตรวจสอบรูปแบบ OTP ต้องเป็นตัวเลข 6 หลัก
     if (otp.length !== 6) {
       setError("Code must be 6 digits")
       return
@@ -52,7 +54,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
 
     try {
       setIsLoading(true)
-
+//เรียก API เพื่อยืนยัน OTP
       const res = await fetch(apiUrl("/api/admin/v1/verifyOtp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,7 +71,6 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         return
       }
 
-      // 2) Get id + access token from response
       const supabaseUserId = data.user?.user?.id
       const accessToken = data.user?.session?.access_token
 
@@ -77,16 +78,14 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         setError("Invalid verify response")
         return
       }
-
-      // 3) Build body for sync-admin
+// เตรียมข้อมูลสำหรับ sync-admin
       const syncBody = {
         supabaseUserId,
         email,
         provider: "email",
         allowMerge: false,
       }
-
-      // 4) Call /api/admin/sync-admin
+// เรียก API เพื่อ sync ข้อมูลแอดมิน
       const syncRes = await fetch(apiUrl("/api/admin/v1/sync-admin"), {
         method: "POST",
         headers: {
@@ -95,15 +94,14 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         },
         body: JSON.stringify(syncBody),
       })
-
+// อ่านผลลัพธ์จากการ sync ข้อมูลแอดมิน
       const syncData = await syncRes.json().catch(() => null)
-
+// ตรวจสอบผลลัพธ์การ sync ข้อมูลแอดมิน
       if (!syncRes.ok) {
         setError(syncData?.error || "Sync admin failed")
         return
       }
-
-      // 5) Success → go to next page (change path if you want)
+// นำผู้ใช้ไปยังหน้า Dashboard หลังยืนยัน OTP และ sync ข้อมูลสำเร็จ
       router.push("/dashboard")
     } catch (err) {
       setError("Network error")
@@ -111,7 +109,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       setIsLoading(false)
     }
   }
-
+// เรนเดอร์ฟอร์มกรอกรหัส OTP
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form onSubmit={handleSubmit}>
@@ -136,13 +134,14 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
             <FieldLabel htmlFor="otp" className="sr-only">
               Verification code
             </FieldLabel>
+            
             <InputOTP
               maxLength={6}
               id="otp"
               required
               containerClassName="gap-4"
               value={otp}
-              onChange={(value) => setOtp(value)}
+              onChange={(value: SetStateAction<string>) => setOtp(value)}
             >
               <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-16 *:data-[slot=input-otp-slot]:w-12 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
                 <InputOTPSlot index={0} />
