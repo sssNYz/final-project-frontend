@@ -82,9 +82,9 @@ export function LoginForm({
       )}
       {...props}
     >
-      <Card className="w-full max-w-md rounded-3xl border-none bg-white shadow-lg">
+      <Card className="w-full max-w-md rounded-3xl border border-white/15 bg-white/10 shadow-2xl backdrop-blur-2xl">
         <CardHeader className="pb-6">
-          <CardTitle className="text-center text-2xl font-bold text-slate-900">
+          <CardTitle className="text-center text-2xl font-bold text-white">
             เข้าสู่ระบบแอดมิน
           </CardTitle>
         </CardHeader>
@@ -92,7 +92,7 @@ export function LoginForm({
           <form onSubmit={handleSubmit} className="space-y-5">
             <FieldGroup className="space-y-2">
               <Field>
-                <FieldLabel htmlFor="email" className="text-xs text-slate-600">
+                <FieldLabel htmlFor="email" className="text-xs text-white/70">
                   อีเมล
                 </FieldLabel>
                 <Input
@@ -103,13 +103,13 @@ export function LoginForm({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-500"
+                  className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
                 />
               </Field>
               <Field>
                 <FieldLabel
                   htmlFor="password"
-                  className="text-xs text-slate-600"
+                  className="text-xs text-white/70"
                 >
                   รหัสผ่าน
                 </FieldLabel>
@@ -122,12 +122,12 @@ export function LoginForm({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="h-11 rounded-full border-none bg-slate-200/80 px-4 pr-11 text-sm text-slate-800 placeholder:text-slate-500"
+                    className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pr-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-800"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
                     aria-label={
                       showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
                     }
@@ -144,7 +144,7 @@ export function LoginForm({
               </Field>
 
               {error && (
-                <p className="text-center text-sm text-red-500">
+                <p className="text-center text-sm text-rose-300">
                   {error}
                 </p>
               )}
@@ -152,7 +152,7 @@ export function LoginForm({
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-2 w-full rounded-full bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-900"
+                  className="mt-2 w-full rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600"
                 >
                   {isLoading ? "Logging in..." : "Log In"}
                 </Button>
