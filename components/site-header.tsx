@@ -7,7 +7,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 const headerUser = {
   name: "admin",
   email: "m@example.com",
-  avatar: "/avatars/shadcn.jpg",
+  avatar: "/avatars/shadcn.svg",
 }
 
 // Header ด้านบนของหน้า Dashboard แสดงโลโก้ ปุ่มเปิด Sidebar และข้อมูลผู้ใช้
