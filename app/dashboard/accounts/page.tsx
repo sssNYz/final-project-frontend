@@ -276,6 +276,7 @@ export default function AccountsPage() {
                     <div className="flex items-center text-[11px] text-slate-600">
                       <span className="w-28">สิทธิการใช้งาน</span>
                       <span className="w-28 pl-3">สถานะ</span>
+                      <span className="w-28 pl-3">อีเมล</span>
                       <span className="flex-1" />
                     </div>
                     <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">

@@ -521,6 +521,7 @@ export default function RequestsPage() {
                   <div className="flex items-center text-[11px] text-slate-600">
                     <span className="w-28">หมวดหมู่</span>
                     <span className="w-28 pl-3">สถานะ</span>
+                    <span className="w-28 pl-3">อีเมล</span>
                     <span className="flex-1" />
                   </div>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -538,13 +539,16 @@ export default function RequestsPage() {
                       <SelectContent align="start">
                         <SelectItem value="all">ทั้งหมด</SelectItem>
                         <SelectItem value="data-info">
-                          คำร้องขอข้อมูลยา
-                        </SelectItem>
-                        <SelectItem value="usage-problem">
                           ปัญหาการใช้งาน
                         </SelectItem>
-                        <SelectItem value="feature">
+                        <SelectItem value="usage-problem">
                           ฟังก์ชันการทำงาน
+                        </SelectItem>
+                        <SelectItem value="feature">
+                          การแจ้งเตือน
+                        </SelectItem>
+                        <SelectItem value="feature">
+                          คำร้องขอเพิ่มยา
                         </SelectItem>
                         <SelectItem value="other">อื่นๆ</SelectItem>
                       </SelectContent>
@@ -744,8 +748,8 @@ export default function RequestsPage() {
                     aria-pressed={statusFilter === "completed"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "completed"
-                        ? "border-emerald-700 bg-emerald-600 text-white shadow-sm"
-                        : "border-emerald-500 bg-emerald-500 text-emerald-50 hover:bg-emerald-600"
+                        ? "border-emerald-800 bg-emerald-700 text-white shadow-sm"
+                        : "border-emerald-700 bg-emerald-600 text-emerald-50 hover:bg-emerald-700"
                     }`}
                   >
                     <span>เสร็จสิ้น</span>

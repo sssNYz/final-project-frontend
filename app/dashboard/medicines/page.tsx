@@ -4,7 +4,7 @@
 import type { CSSProperties, FormEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { FileText, Pill, Trash2 } from "lucide-react"
+import { FileText, Pill } from "lucide-react"
 import { toast } from "sonner"
 
 import { apiUrl } from "@/lib/apiClient"
@@ -47,6 +47,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type UsageType = "oral" | "topical"
 
@@ -57,6 +62,7 @@ type MedicineRow = {
   genericNameEn: string
   brandName: string
   usageType: UsageType
+  status: boolean | null
   indications: string
   instructions: string
   adverseEffects: string
@@ -70,7 +76,7 @@ const USAGE_LABELS: Record<UsageType, string> = {
   topical: "ยาใช้ภายนอก",
 }
 
-const PAGE_SIZE = 4
+const PAGE_SIZE = 10
 
 type FormState = {
   genericNameTh: string
@@ -91,6 +97,9 @@ type ApiMedicinePayload = {
   mediEnName: string
   mediTradeName: string | null
   mediType: "ORAL" | "TOPICAL"
+  mediStatus?: {
+    status?: boolean | null
+  } | boolean | null
   mediUse?: string | null
   mediGuide?: string | null
   mediEffects?: string | null
@@ -126,6 +135,34 @@ function resolveImageUrl(path?: string | null): string | undefined {
   return apiUrl(`/${normalized}`)
 }
 
+function resolveBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value
+  if (typeof value === "number") {
+    if (value === 1) return true
+    if (value === 0) return false
+    return null
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    if (["true", "1", "on", "active", "enabled"].includes(normalized)) {
+      return true
+    }
+    if (["false", "0", "off", "inactive", "disabled"].includes(normalized)) {
+      return false
+    }
+  }
+  return null
+}
+
+function resolveMedicineStatus(
+  value?: ApiMedicinePayload["mediStatus"],
+): boolean | null {
+  if (value && typeof value === "object") {
+    return resolveBoolean(value.status)
+  }
+  return resolveBoolean(value)
+}
+
 function mapApiMedicine(
   apiMedicine: ApiMedicinePayload,
   fallback: Partial<MedicineRow> = {},
@@ -142,6 +179,10 @@ function mapApiMedicine(
         : apiMedicine.mediType === "ORAL"
           ? "oral"
           : fallback.usageType ?? "oral",
+    status:
+      resolveMedicineStatus(apiMedicine.mediStatus) ??
+      fallback.status ??
+      null,
     indications: apiMedicine.mediUse ?? fallback.indications ?? "",
     instructions: apiMedicine.mediGuide ?? fallback.instructions ?? "",
     adverseEffects: apiMedicine.mediEffects ?? fallback.adverseEffects ?? "",
@@ -170,13 +211,86 @@ export default function MedicinesPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [statusUpdating, setStatusUpdating] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const statusRequestedRef = useRef<Set<string>>(new Set())
+
+  // โหลดสถานะการใช้งานของยาทั้งหมด
+  async function loadAllStatuses(
+    ids: string[],
+    headers: Record<string, string>,
+  ) {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return
+
+    const idsToFetch = uniqueIds.filter(
+      (id) => !statusRequestedRef.current.has(id),
+    )
+
+    if (idsToFetch.length === 0) return
+
+    idsToFetch.forEach((id) => {
+      statusRequestedRef.current.add(id)
+    })
+
+    // ดึงสถานะการใช้งานของยาแต่ละตัว
+    const results = await Promise.allSettled(
+      idsToFetch.map(async (id) => {
+        const res = await fetch(
+          apiUrl(
+            `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
+          ),
+          { headers },
+        )
+        const payload = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          return { id, status: null }
+        }
+
+        const apiMedicine = (payload?.medicine ??
+          payload?.item ??
+          payload?.data ??
+          null) as ApiMedicinePayload | null
+        const status = resolveMedicineStatus(apiMedicine?.mediStatus)
+        return { id, status }
+      }),
+    )
+
+    // นำผลลัพธ์ที่ได้มาอัปเดตสถานะการใช้งานใน state
+    const updates = new Map<string, boolean>()
+    results.forEach((result) => {
+      if (result.status !== "fulfilled") return
+      if (typeof result.value.status !== "boolean") {
+        statusRequestedRef.current.delete(result.value.id)
+        return
+      }
+      updates.set(result.value.id, result.value.status)
+    })
+
+    if (updates.size === 0) return
+
+    setMedicines((previous) =>
+      previous.map((medicine) => {
+        if (!updates.has(medicine.id)) return medicine
+        return { ...medicine, status: updates.get(medicine.id) ?? null }
+      }),
+    )
+
+    setViewingMedicine((previous) => {
+      if (!previous) return previous
+      const status = updates.get(previous.id)
+      if (typeof status !== "boolean") return previous
+      return { ...previous, status }
+    })
+  }
 
   // โหลดรายการยาจริงจาก API /api/admin/v1/medicine/list
   async function reloadMedicines() {
     try {
       setIsLoading(true)
       setLoadError(null)
+      statusRequestedRef.current.clear()
 
 // อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
       const accessToken =
@@ -189,8 +303,11 @@ export default function MedicinesPage() {
         headers.Authorization = `Bearer ${accessToken}`
       }
 
+      // ดึงรายการยาทั้งหมด (pageSize=1000) รวมถึงยาที่ถูกลบแล้ว (includeDeleted=true)
       const res = await fetch(
-        apiUrl("/api/admin/v1/medicine/list?page=1&pageSize=1000"),
+        apiUrl(
+          "/api/admin/v1/medicine/list?page=1&pageSize=1000&includeDeleted=true",
+        ),
         { headers },
       )
 
@@ -212,6 +329,7 @@ export default function MedicinesPage() {
         mediTradeName: string | null
         mediType: "ORAL" | "TOPICAL"
         mediPicture?: string | null
+        mediStatus?: ApiMedicinePayload["mediStatus"]
       }[]
 
       const next: MedicineRow[] = items.map((item) => {
@@ -222,6 +340,7 @@ export default function MedicinesPage() {
           genericNameEn: item.mediEnName,
           brandName: item.mediTradeName ?? "",
           usageType: item.mediType === "TOPICAL" ? "topical" : "oral",
+          status: resolveMedicineStatus(item.mediStatus),
           indications: "",
           instructions: "",
           adverseEffects: "",
@@ -231,8 +350,37 @@ export default function MedicinesPage() {
         }
       })
 
-      setMedicines(next)
+      const previousById = new Map(
+        medicines.map((medicine) => [medicine.id, medicine]),
+      )
+      const merged = new Map<string, MedicineRow>()
+
+      next.forEach((item) => {
+        const existing = previousById.get(item.id)
+        merged.set(item.id, {
+          ...existing,
+          ...item,
+          status:
+            typeof item.status === "boolean"
+              ? item.status
+              : existing?.status ?? null,
+        })
+      })
+
+      medicines.forEach((item) => {
+        if (!merged.has(item.id)) {
+          merged.set(item.id, item)
+        }
+      })
+
+      const mergedList = Array.from(merged.values())
+
+      setMedicines(mergedList)
       setCurrentPage(1)
+      await loadAllStatuses(
+        mergedList.map((item) => item.id),
+        headers,
+      )
     } catch {
       setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลยา")
       setMedicines([])
@@ -280,9 +428,216 @@ export default function MedicinesPage() {
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
 
+  useEffect(() => {
+    const pending = paginatedMedicines.filter(
+      (medicine) =>
+        typeof medicine.status !== "boolean" &&
+        !statusRequestedRef.current.has(medicine.id),
+    )
+
+    if (pending.length === 0) return
+
+    const accessToken =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("accessToken")
+        : null
+    const headers: Record<string, string> = {}
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+    }
+
+    pending.forEach((medicine) => {
+      statusRequestedRef.current.add(medicine.id)
+    })
+
+    let cancelled = false
+
+    async function loadStatuses() {
+      const results = await Promise.allSettled(
+        pending.map(async (medicine) => {
+          const res = await fetch(
+            apiUrl(
+              `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(
+                medicine.id,
+              )}`,
+            ),
+            { headers },
+          )
+          const payload = await res.json().catch(() => null)
+
+          if (!res.ok) {
+            return { id: medicine.id, status: null }
+          }
+
+          const apiMedicine = (payload?.medicine ??
+            payload?.item ??
+            payload?.data ??
+            null) as ApiMedicinePayload | null
+
+          const status = resolveMedicineStatus(apiMedicine?.mediStatus)
+          return { id: medicine.id, status }
+        }),
+      )
+
+      if (cancelled) return
+
+      const updates = new Map<string, boolean>()
+      results.forEach((result) => {
+        if (result.status !== "fulfilled") return
+        if (typeof result.value.status !== "boolean") return
+        updates.set(result.value.id, result.value.status)
+      })
+
+      if (updates.size === 0) return
+
+      setMedicines((previous) =>
+        previous.map((medicine) => {
+          if (!updates.has(medicine.id)) return medicine
+          const nextStatus = updates.get(medicine.id) ?? null
+          if (medicine.status === nextStatus) return medicine
+          return { ...medicine, status: nextStatus }
+        }),
+      )
+    }
+
+    loadStatuses()
+
+    return () => {
+      cancelled = true
+    }
+  }, [paginatedMedicines])
+
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
+  }
+
+  function handleToggleStatus(id: string) {
+    if (statusUpdating.has(id)) return
+    const target = medicines.find((medicine) => medicine.id === id)
+    if (!target || typeof target.status !== "boolean") return
+    const nextStatus = !target.status
+
+    setMedicines((current) =>
+      current.map((medicine) =>
+        medicine.id === id ? { ...medicine, status: nextStatus } : medicine,
+      ),
+    )
+
+    setStatusUpdating((current) => {
+      const next = new Set(current)
+      next.add(id)
+      return next
+    })
+
+    updateMedicineStatus(id, nextStatus, target.status)
+  }
+
+  async function updateMedicineStatus(
+    id: string,
+    nextStatus: boolean,
+    previousStatus: boolean,
+  ) {
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const formData = new FormData()
+      formData.set("mediId", id)
+      formData.set("mediStatus", String(nextStatus))
+
+      const res = await fetch(apiUrl("/api/admin/v1/medicine/update"), {
+        method: "PATCH",
+        headers,
+        body: formData,
+      })
+
+      const payload = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setMedicines((current) =>
+          current.map((medicine) =>
+            medicine.id === id
+              ? { ...medicine, status: previousStatus }
+              : medicine,
+          ),
+        )
+        toast.error(
+          (payload && (payload.error as string | undefined)) ||
+            "อัปเดตสถานะการใช้งานไม่สำเร็จ",
+        )
+        return
+      }
+
+      const apiMedicine = (payload?.medicine ??
+        payload?.item ??
+        payload?.data ??
+        null) as ApiMedicinePayload | null
+
+      const resolvedStatus = resolveMedicineStatus(apiMedicine?.mediStatus)
+      if (typeof resolvedStatus === "boolean") {
+        setMedicines((current) =>
+          current.map((medicine) =>
+            medicine.id === id
+              ? { ...medicine, status: resolvedStatus }
+              : medicine,
+          ),
+        )
+        setViewingMedicine((current) =>
+          current && current.id === id
+            ? { ...current, status: resolvedStatus }
+            : current,
+        )
+        return
+      }
+
+      const detailRes = await fetch(
+        apiUrl(
+          `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
+        ),
+        { headers },
+      )
+      const detailPayload = await detailRes.json().catch(() => null)
+      if (!detailRes.ok) return
+      const detailMedicine = (detailPayload?.medicine ??
+        detailPayload?.item ??
+        detailPayload?.data ??
+        null) as ApiMedicinePayload | null
+      const detailStatus = resolveMedicineStatus(detailMedicine?.mediStatus)
+      if (typeof detailStatus !== "boolean") return
+      setMedicines((current) =>
+        current.map((medicine) =>
+          medicine.id === id ? { ...medicine, status: detailStatus } : medicine,
+        ),
+      )
+      setViewingMedicine((current) =>
+        current && current.id === id
+          ? { ...current, status: detailStatus }
+          : current,
+      )
+    } catch {
+      setMedicines((current) =>
+        current.map((medicine) =>
+          medicine.id === id
+            ? { ...medicine, status: previousStatus }
+            : medicine,
+        ),
+      )
+      toast.error("เกิดข้อผิดพลาดในการอัปเดตสถานะการใช้งาน")
+    } finally {
+      setStatusUpdating((current) => {
+        const next = new Set(current)
+        next.delete(id)
+        return next
+      })
+    }
   }
 
   function openCreateForm() {
@@ -443,7 +798,16 @@ export default function MedicinesPage() {
         return
       }
 
-      const mapped = mapApiMedicine(apiMedicine, data)
+      const existingMedicine =
+        !isCreate && currentEditingId && currentEditingId !== "new"
+          ? medicines.find((medicine) => medicine.id === currentEditingId)
+          : null
+
+      const mapped = mapApiMedicine(apiMedicine, {
+        ...data,
+        imageUrl: existingMedicine?.imageUrl,
+        status: existingMedicine?.status ?? null,
+      })
 
       if (isCreate) {
         setMedicines((previous) => [mapped, ...previous])
@@ -473,61 +837,6 @@ export default function MedicinesPage() {
   }
 
   // ลบข้อมูลยาจากระบบผ่าน API (soft delete) แล้วรีโหลดตาราง
-  async function handleDelete(id: string) {
-    const medicine = medicines.find((item) => item.id === id)
-    const label =
-      medicine &&
-      `${medicine.genericNameEn} (${medicine.brandName})`
-
-    const confirmed = window.confirm(
-      label
-        ? `ต้องการลบข้อมูลยา ${label} หรือไม่?`
-        : "ต้องการลบข้อมูลยานี้หรือไม่?",
-    )
-
-    if (!confirmed) return
-
-    try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
-
-      const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
-
-      const res = await fetch(
-        apiUrl(
-          `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
-        ),
-        {
-          method: "DELETE",
-          headers,
-        },
-      )
-
-      const payload = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        const message =
-          (payload && (payload.error as string | undefined)) ||
-          "ไม่สามารถลบข้อมูลยาได้"
-        window.alert(message)
-        return
-      }
-
-      await reloadMedicines()
-      setViewingMedicine((previous) =>
-        previous && previous.id === id ? null : previous,
-      )
-    } catch (error) {
-      console.error("Error deleting medicine:", error)
-      window.alert("เกิดข้อผิดพลาดในการลบข้อมูลยา")
-    }
-  }
-
   async function openViewDetails(id: string) {
     const medicine = medicines.find((item) => item.id === id)
     if (medicine) {
@@ -612,6 +921,7 @@ export default function MedicinesPage() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center text-[11px] text-slate-600">
                     <span className="w-28">รูปแบบการใช้ยา</span>
+                    <span className="w-28 pl-3">ชื่อยา / ชื่อการค้ายา</span>
                     <span className="flex-1" />
                   </div>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -952,11 +1262,14 @@ export default function MedicinesPage() {
                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
                       ชื่อสามัญยา
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                    <TableHead className="w-[220px] px-4 py-3 text-center text-xs font-semibold text-white">
                       ชื่อการค้า
                     </TableHead>
                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
                       รูปแบบการใช้
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+                      สถานะการใช้งาน
                     </TableHead>
                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
                       จัดการ
@@ -979,14 +1292,17 @@ export default function MedicinesPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
+                          <TableCell className="w-[220px] px-4 py-3 text-center">
                             <div className="mx-auto h-4 w-24 animate-pulse rounded bg-slate-200" />
                           </TableCell>
                           <TableCell className="px-4 py-3 text-center">
                             <div className="mx-auto h-4 w-20 animate-pulse rounded bg-slate-200" />
                           </TableCell>
                           <TableCell className="px-4 py-3 text-center">
-                            <div className="mx-auto h-8 w-16 animate-pulse rounded-full bg-slate-200" />
+                            <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-slate-200" />
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <div className="mx-auto h-8 w-8 animate-pulse rounded-full bg-slate-200" />
                           </TableCell>
                         </TableRow>
                       ))
@@ -1024,22 +1340,71 @@ export default function MedicinesPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                            {medicine.brandName}
+                          <TableCell className="w-[220px] px-4 py-3 text-center text-sm text-slate-700">
+                            {medicine.brandName ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="block max-w-[200px] truncate text-center">
+                                    {medicine.brandName}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  className="max-w-xs text-xs"
+                                >
+                                  {medicine.brandName}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              "-"
+                            )}
                           </TableCell>
                           <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                             {USAGE_LABELS[medicine.usageType]}
                           </TableCell>
+                          <TableCell className="px-4 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(medicine.id)}
+                              disabled={
+                                typeof medicine.status !== "boolean" ||
+                                statusUpdating.has(medicine.id)
+                              }
+                              className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed ${
+                                typeof medicine.status !== "boolean"
+                                  ? "border-slate-300 bg-slate-100 text-slate-400"
+                                  : medicine.status
+                                    ? "border-emerald-500 bg-emerald-500 text-white"
+                                    : "border-red-500 bg-red-500 text-white"
+                              }`}
+                              aria-pressed={
+                                typeof medicine.status === "boolean"
+                                  ? medicine.status
+                                  : undefined
+                              }
+                            >
+                              <span>
+                                {typeof medicine.status === "boolean"
+                                  ? medicine.status
+                                    ? "ON"
+                                    : "OFF"
+                                  : "--"}
+                              </span>
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
+                                <span
+                                  className={`h-2.5 w-2.5 rounded-full ${
+                                    typeof medicine.status !== "boolean"
+                                      ? "bg-slate-300"
+                                      : medicine.status
+                                        ? "bg-emerald-500"
+                                        : "bg-red-500"
+                                  }`}
+                                />
+                              </span>
+                            </button>
+                          </TableCell>
                           <TableCell className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(medicine.id)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
-                                aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
                               <button
                                 type="button"
                                 onClick={() => openViewDetails(medicine.id)}
@@ -1055,7 +1420,7 @@ export default function MedicinesPage() {
                   {!isLoading && paginatedMedicines.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="py-10 text-center text-sm text-slate-500"
                       >
                         <div className="flex flex-col items-center gap-2">
