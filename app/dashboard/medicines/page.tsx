@@ -212,6 +212,7 @@ export default function MedicinesPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState<Set<string>>(new Set())
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const statusRequestedRef = useRef<Set<string>>(new Set())
 
@@ -1313,20 +1314,20 @@ export default function MedicinesPage() {
                         >
                           <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-200">
+                              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-slate-100 p-1">
                                 {medicine.imageUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src={medicine.imageUrl}
                                     alt={medicine.genericNameEn}
-                                    className="h-full w-full object-cover"
+                                    className="h-full w-full object-contain"
                                   />
                                 ) : (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src="/medicine-placeholder.svg"
                                     alt="รูปยาตัวอย่าง"
-                                    className="h-full w-full object-cover"
+                                    className="h-full w-full object-contain"
                                   />
                                 )}
                               </div>
@@ -1511,23 +1512,33 @@ export default function MedicinesPage() {
                 </DrawerHeader>
                 <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-xs text-slate-700">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedImage(
+                          viewingMedicine.imageUrl ||
+                            "/medicine-placeholder.svg",
+                        )
+                      }
+                      className="flex h-20 w-20 cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200"
+                      aria-label="ขยายรูปยา"
+                    >
                       {viewingMedicine.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={viewingMedicine.imageUrl}
                           alt={viewingMedicine.genericNameEn}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src="/medicine-placeholder.svg"
                           alt="รูปยาตัวอย่าง"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                         />
                       )}
-                    </div>
+                    </button>
                     <div className="text-xs text-slate-600">
                       <div className="font-semibold text-slate-800">
                         รูปแบบการใช้ยา:{" "}
@@ -1616,6 +1627,26 @@ export default function MedicinesPage() {
           </DrawerContent>
         </Drawer>
       </SidebarInset>
+
+      {expandedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setExpandedImage(null)}
+          role="presentation"
+        >
+          <div
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl bg-white p-3 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={expandedImage}
+              alt="รูปยาขยาย"
+              className="max-h-[85vh] w-auto max-w-[85vw] object-contain"
+            />
+          </div>
+        </div>
+      )}
     </SidebarProvider>
   )
 }

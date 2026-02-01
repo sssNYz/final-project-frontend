@@ -204,6 +204,7 @@ export default function RequestsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchRequests() {
@@ -992,18 +993,32 @@ export default function RequestsPage() {
                       </div>
                     </div>
                     <div className="flex h-40 items-center justify-center bg-white">
-                      {/* ถ้ามีรูปแนบมากับคำร้อง ใช้รูปนั้น ถ้าไม่มีก็ใช้รูปยาตัวอย่าง */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={
-                          activeRequest.imageUrl &&
-                          activeRequest.imageUrl.length > 0
-                            ? activeRequest.imageUrl
-                            : "/medicine-placeholder.svg"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedImage(
+                            activeRequest.imageUrl &&
+                              activeRequest.imageUrl.length > 0
+                              ? activeRequest.imageUrl
+                              : "/medicine-placeholder.svg",
+                          )
                         }
-                        alt="รูปยาประกอบคำร้อง"
-                        className="h-full w-full max-w-[200px] object-contain"
-                      />
+                        className="flex h-full w-full cursor-zoom-in items-center justify-center"
+                        aria-label="ขยายรูปคำร้อง"
+                      >
+                        {/* ถ้ามีรูปแนบมากับคำร้อง ใช้รูปนั้น ถ้าไม่มีก็ใช้รูปยาตัวอย่าง */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={
+                            activeRequest.imageUrl &&
+                            activeRequest.imageUrl.length > 0
+                              ? activeRequest.imageUrl
+                              : "/medicine-placeholder.svg"
+                          }
+                          alt="รูปยาประกอบคำร้อง"
+                          className="h-full w-full max-w-[200px] object-contain"
+                        />
+                      </button>
                     </div>
                     </div>
                     {activeRequest.status === "pending" && (
@@ -1030,6 +1045,26 @@ export default function RequestsPage() {
           </div>
         </main>
       </SidebarInset>
+
+      {expandedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setExpandedImage(null)}
+          role="presentation"
+        >
+          <div
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl bg-white p-3 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={expandedImage}
+              alt="รูปคำร้องขยาย"
+              className="max-h-[85vh] w-auto max-w-[85vw] object-contain"
+            />
+          </div>
+        </div>
+      )}
     </SidebarProvider>
   )
 }
