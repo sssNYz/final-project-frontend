@@ -111,7 +111,7 @@ export function LoginForm({
                   htmlFor="password"
                   className="text-xs text-slate-600"
                 >
-                  Password
+                  รหัสผ่าน
                 </FieldLabel>
                 <div className="relative">
                   <Input

@@ -213,6 +213,9 @@ export default function MedicinesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState<Set<string>>(new Set())
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(
+    null,
+  )
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const statusRequestedRef = useRef<Set<string>>(new Set())
 
@@ -645,6 +648,7 @@ export default function MedicinesPage() {
     setEditingId("new")
     setFormValues(emptyForm)
     setImagePreview(null)
+    setSelectedFileName(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -656,6 +660,7 @@ export default function MedicinesPage() {
 
     setEditingId(id)
     setImagePreview(medicine.imageUrl ?? null)
+    setSelectedFileName(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -677,6 +682,7 @@ export default function MedicinesPage() {
     setEditingId(null)
     setFormValues(emptyForm)
     setImagePreview(null)
+    setSelectedFileName(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -824,6 +830,7 @@ export default function MedicinesPage() {
       setEditingId(null)
       setFormValues(emptyForm)
       setImagePreview(null)
+      setSelectedFileName(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
@@ -986,26 +993,33 @@ export default function MedicinesPage() {
                             รูปภาพยา
                           </label>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex h-36 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white p-2 shadow-sm"
+                              aria-label="เลือกรูปภาพยา"
+                            >
                               {imagePreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={imagePreview}
                                   alt="รูปภาพยา"
-                                  className="h-full w-full object-cover"
+                                  className="h-full w-full object-contain"
                                 />
                               ) : (
                                 <Pill className="h-8 w-8 text-slate-400" />
                               )}
-                            </div>
+                            </button>
                           </div>
                           <Input
                             type="file"
                             accept="image/png"
                             ref={fileInputRef}
+                            id="medicine-image"
                             onChange={(event) => {
                               const files = event.target.files
                               if (!files || files.length === 0) {
+                                setSelectedFileName(null)
                                 return
                               }
 
@@ -1016,6 +1030,7 @@ export default function MedicinesPage() {
                                   "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
                                 )
                                 event.target.value = ""
+                                setSelectedFileName(null)
                                 return
                               }
 
@@ -1026,9 +1041,23 @@ export default function MedicinesPage() {
                                 }
                                 return url
                               })
+                              setSelectedFileName(file.name)
                             }}
-                            className="h-9 rounded-md border border-slate-200 bg-white text-xs file:mr-2 file:rounded-md file:border-none file:bg-slate-800 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-900"
+                            className="sr-only"
                           />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-9 rounded-md bg-sky-700 px-3 text-xs font-semibold text-white hover:bg-sky-800"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              เลือกไฟล์
+                            </Button>
+                            <span className="text-xs text-slate-500">
+                              {selectedFileName || "ยังไม่ได้เลือกไฟล์"}
+                            </span>
+                          </div>
                           <p className="text-[11px] text-slate-400">
                             รองรับเฉพาะไฟล์รูปภาพนามสกุล PNG
                           </p>
@@ -1098,7 +1127,7 @@ export default function MedicinesPage() {
                               )
                             }
                           >
-                            <SelectTrigger className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-800">
+                            <SelectTrigger className="h-9 rounded-md border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                               <SelectValue placeholder="เลือกรูปแบบการใช้ยา" />
                             </SelectTrigger>
                             <SelectContent align="start">
