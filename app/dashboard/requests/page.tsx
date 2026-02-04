@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type { CSSProperties } from "react"
 import { useEffect, useMemo, useState } from "react"
@@ -41,10 +41,11 @@ import { apiUrl } from "@/lib/apiClient"
 type RequestStatus = "pending" | "rejected" | "completed"
 
 type RequestCategory =
-  | "data-info"
-  | "usage-problem"
-  | "feature"
-  | "other"
+  | "PROBLEM"
+  | "FUNCTION"
+  | "NOTIFICATION"
+  | "ADD_MEDICINE"
+  | "OTHER"
 
 type RequestRow = {
   id: string
@@ -72,10 +73,11 @@ const STATUS_BADGE_CLASSES: Record<RequestStatus, string> = {
 }
 
 const CATEGORY_LABELS: Record<RequestCategory, string> = {
-  "data-info": "คำร้องขอข้อมูลยา",
-  "usage-problem": "ปัญหาการใช้งาน",
-  feature: "ฟังก์ชันการทำงาน",
-  other: "อื่นๆ",
+  PROBLEM: "ปัญหาการใช้งาน",
+  FUNCTION: "ฟังก์ชันการทำงาน",
+  NOTIFICATION: "การแจ้งเตือน",
+  ADD_MEDICINE: "คำร้องขอเพิ่มยา",
+  OTHER: "อื่นๆ",
 }
 
 const PAGE_SIZE = 10
@@ -92,15 +94,32 @@ function normalizeStatus(value?: string | null): RequestStatus {
 }
 
 function normalizeCategory(value?: string | null): RequestCategory {
-  const normalized = (value ?? "").toLowerCase()
-  if (normalized.includes("data") || normalized.includes("info")) {
-    return "data-info"
+  const raw = (value ?? "").trim()
+  if (!raw) return "OTHER"
+  const normalized = raw.toUpperCase().replace(/\s+/g, "_")
+  if (
+    normalized.includes("PROBLEM") ||
+    normalized.includes("USAGE") ||
+    normalized.includes("ISSUE")
+  ) {
+    return "PROBLEM"
   }
-  if (normalized.includes("usage") || normalized.includes("problem")) {
-    return "usage-problem"
+  if (normalized.includes("FUNCTION") || normalized.includes("FEATURE")) {
+    return "FUNCTION"
   }
-  if (normalized.includes("feature")) return "feature"
-  return "other"
+  if (normalized.includes("NOTIFICATION") || normalized.includes("ALERT")) {
+    return "NOTIFICATION"
+  }
+  if (
+    normalized.includes("ADD_MEDICINE") ||
+    normalized.includes("ADD_DRUG") ||
+    normalized.includes("MEDICINE") ||
+    normalized.includes("DATA") ||
+    normalized.includes("INFO")
+  ) {
+    return "ADD_MEDICINE"
+  }
+  return "OTHER"
 }
 
 function normalizeDate(value: unknown): string {
@@ -539,19 +558,19 @@ export default function RequestsPage() {
                       </SelectTrigger>
                       <SelectContent align="start">
                         <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="data-info">
+                        <SelectItem value="PROBLEM">
                           ปัญหาการใช้งาน
                         </SelectItem>
-                        <SelectItem value="usage-problem">
+                        <SelectItem value="FUNCTION">
                           ฟังก์ชันการทำงาน
                         </SelectItem>
-                        <SelectItem value="feature">
+                        <SelectItem value="NOTIFICATION">
                           การแจ้งเตือน
                         </SelectItem>
-                        <SelectItem value="feature">
+                        <SelectItem value="ADD_MEDICINE">
                           คำร้องขอเพิ่มยา
                         </SelectItem>
-                        <SelectItem value="other">อื่นๆ</SelectItem>
+                        <SelectItem value="OTHER">อื่นๆ</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="h-5 w-px bg-slate-200" />
@@ -1068,3 +1087,6 @@ export default function RequestsPage() {
     </SidebarProvider>
   )
 }
+
+
+

@@ -4,7 +4,7 @@
 import type { CSSProperties, FormEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { FileText, Pill } from "lucide-react"
+import { FileText, Pill, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { apiUrl } from "@/lib/apiClient"
@@ -845,6 +845,55 @@ export default function MedicinesPage() {
   }
 
   // ลบข้อมูลยาจากระบบผ่าน API (soft delete) แล้วรีโหลดตาราง
+  async function handleDeleteMedicine(id: string) {
+    const medicine = medicines.find((item) => item.id === id)
+    const label =
+      medicine?.genericNameEn?.trim() ||
+      medicine?.genericNameTh?.trim() ||
+      "รายการนี้"
+    const confirmed = window.confirm(
+      `ต้องการลบข้อมูลยา ${label} หรือไม่?`,
+    )
+    if (!confirmed) return
+
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await fetch(
+        apiUrl(
+          `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
+        ),
+        {
+          method: "DELETE",
+          headers,
+        },
+      )
+
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        toast.error(
+          (payload && (payload.error as string | undefined)) ||
+            "ลบข้อมูลยาไม่สำเร็จ",
+        )
+        return
+      }
+
+      toast.success("ลบข้อมูลยาเรียบร้อยแล้ว")
+      await reloadMedicines()
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการลบข้อมูลยา")
+    }
+  }
+
+  // เปิดดูรายละเอียดข้อมูลยา
   async function openViewDetails(id: string) {
     const medicine = medicines.find((item) => item.id === id)
     if (medicine) {
@@ -1302,7 +1351,7 @@ export default function MedicinesPage() {
                       สถานะการใช้งาน
                     </TableHead>
                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      จัดการ
+                      <span className="sr-only">จัดการ</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1435,6 +1484,14 @@ export default function MedicinesPage() {
                           </TableCell>
                           <TableCell className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMedicine(medicine.id)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                                aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => openViewDetails(medicine.id)}

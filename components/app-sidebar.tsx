@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   IconChartBar,
   IconDatabase,
-  IconInnerShadowTop,
   IconListDetails,
   IconUsers,
 } from "@tabler/icons-react"
@@ -74,8 +74,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="/dashboard" aria-label="กลับไปหน้า Dashboard">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm">
-                    <IconInnerShadowTop className="!size-5" />
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/40">
+                    <Image
+                      src="/assets/Icon_MediBuddy.png"
+                      alt="MediBuddy"
+                      width={26}
+                      height={26}
+                      className="h-6 w-6 object-contain"
+                    />
                   </span>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold leading-tight">

@@ -82,7 +82,7 @@ export function LoginForm({
       )}
       {...props}
     >
-      <Card className="w-full max-w-md rounded-3xl border border-white/15 bg-white/10 shadow-2xl backdrop-blur-2xl">
+      <Card className="w-full max-w-md rounded-3xl border border-sky-400/30 bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-sky-900/80 shadow-2xl shadow-sky-500/20 backdrop-blur-2xl">
         <CardHeader className="pb-6">
           <CardTitle className="text-center text-2xl font-bold text-white">
             เข้าสู่ระบบแอดมิน

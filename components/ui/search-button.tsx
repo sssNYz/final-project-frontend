@@ -14,7 +14,7 @@ export function SearchButton({
   return (
     <Button
       className={cn(
-        "h-9 rounded-md bg-red-600 px-5 text-xs font-semibold text-white shadow-sm hover:bg-red-700",
+        "h-9 rounded-md bg-sky-600 px-5 text-xs font-semibold text-white shadow-sm hover:bg-sky-700",
         className,
       )}
       {...props}
