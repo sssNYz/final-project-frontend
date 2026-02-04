@@ -36,7 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch, apiUrl } from "@/lib/apiClient"
 
 type RequestStatus = "pending" | "rejected" | "completed"
 
@@ -240,7 +240,7 @@ export default function RequestsPage() {
           headers.Authorization = `Bearer ${accessToken}`
         }
 
-        const res = await fetch(apiUrl("/api/admin/v1/user-request/list"), {
+        const res = await apiFetch("/api/admin/v1/user-request/list", {
           headers,
         })
         const data = await res.json().catch(() => null)
@@ -472,8 +472,8 @@ export default function RequestsPage() {
         headers.Authorization = `Bearer ${accessToken}`
       }
 
-      const res = await fetch(
-        apiUrl(`/api/admin/v1/user-request/${encodeURIComponent(id)}`),
+      const res = await apiFetch(
+        `/api/admin/v1/user-request/${encodeURIComponent(id)}`,
         {
           method: "PATCH",
           headers,

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { Trash2, User2 } from "lucide-react"
 
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -102,7 +102,7 @@ export default function AccountsPage() {
         }
   
 // เรียก API เพื่อดึงรายการบัญชีผู้ใช้งาน
-        const res = await fetch(apiUrl("/api/admin/v1/users/list"), { headers })
+        const res = await apiFetch("/api/admin/v1/users/list", { headers })
   
         const data = await res.json().catch(() => null)
   
@@ -221,7 +221,7 @@ export default function AccountsPage() {
           : "0"
       const deleteUrl = `/api/admin/v1/users/${validId}?email=${encodeURIComponent(account.email)}`
 
-      const res = await fetch(deleteUrl, {
+      const res = await apiFetch(deleteUrl, {
         method: "DELETE",
       })
 

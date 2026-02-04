@@ -19,7 +19,7 @@ export function getApiBaseUrl(): string {
    * @param path - API path like "/api/admin/signin"
    * @returns Full URL or relative path
    */
-  export function apiUrl(path: string): string {
+export function apiUrl(path: string): string {
     const baseUrl = getApiBaseUrl();
     
     // Ensure path starts with /
@@ -33,3 +33,75 @@ export function getApiBaseUrl(): string {
     // Return full URL
     return `${baseUrl}${cleanPath}`;
   }
+
+type ApiFetchOptions = RequestInit & {
+  skipAuth?: boolean
+  skipAuthRedirect?: boolean
+}
+
+function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {}
+  if (headers instanceof Headers) {
+    const result: Record<string, string> = {}
+    headers.forEach((value, key) => {
+      result[key] = value
+    })
+    return result
+  }
+  if (Array.isArray(headers)) {
+    return headers.reduce<Record<string, string>>((acc, [key, value]) => {
+      acc[key] = value
+      return acc
+    }, {})
+  }
+  return { ...headers }
+}
+
+function hasAuthorizationHeader(headers: Record<string, string>): boolean {
+  return Object.keys(headers).some(
+    (key) => key.toLowerCase() === "authorization",
+  )
+}
+
+function clearAuthStorage() {
+  if (typeof window === "undefined") return
+  window.localStorage.removeItem("accessToken")
+  window.localStorage.removeItem("refreshToken")
+  window.localStorage.removeItem("currentUserEmail")
+}
+
+export function handleUnauthorized() {
+  if (typeof window === "undefined") return
+  clearAuthStorage()
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login"
+  } else {
+    window.location.reload()
+  }
+}
+
+export async function apiFetch(
+  path: string,
+  options: ApiFetchOptions = {},
+): Promise<Response> {
+  const { skipAuth, skipAuthRedirect, headers, ...init } = options
+  const normalizedHeaders = normalizeHeaders(headers)
+
+  if (!skipAuth && typeof window !== "undefined") {
+    const token = window.localStorage.getItem("accessToken")
+    if (token && !hasAuthorizationHeader(normalizedHeaders)) {
+      normalizedHeaders.Authorization = `Bearer ${token}`
+    }
+  }
+
+  const res = await fetch(apiUrl(path), {
+    ...init,
+    headers: normalizedHeaders,
+  })
+
+  if (!skipAuthRedirect && (res.status === 401 || res.status === 403)) {
+    handleUnauthorized()
+  }
+
+  return res
+}

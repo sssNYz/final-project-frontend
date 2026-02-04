@@ -1,5 +1,5 @@
 "use client"
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -49,10 +49,12 @@ export function SignupForm({
 
     try {
       setIsLoading(true)
-      const res = await fetch(apiUrl("/api/admin/v1/signup"), {
+      const res = await apiFetch("/api/admin/v1/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        skipAuth: true,
+        skipAuthRedirect: true,
       })
 
       if (!res.ok) {

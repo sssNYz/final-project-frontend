@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { FileText, Pill, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch, apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
@@ -240,10 +240,8 @@ export default function MedicinesPage() {
     // ดึงสถานะการใช้งานของยาแต่ละตัว
     const results = await Promise.allSettled(
       idsToFetch.map(async (id) => {
-        const res = await fetch(
-          apiUrl(
-            `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
-          ),
+        const res = await apiFetch(
+          `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
           { headers },
         )
         const payload = await res.json().catch(() => null)
@@ -308,10 +306,8 @@ export default function MedicinesPage() {
       }
 
       // ดึงรายการยาทั้งหมด (pageSize=1000) รวมถึงยาที่ถูกลบแล้ว (includeDeleted=true)
-      const res = await fetch(
-        apiUrl(
-          "/api/admin/v1/medicine/list?page=1&pageSize=1000&includeDeleted=true",
-        ),
+      const res = await apiFetch(
+        "/api/admin/v1/medicine/list?page=1&pageSize=1000&includeDeleted=true",
         { headers },
       )
 
@@ -459,12 +455,10 @@ export default function MedicinesPage() {
     async function loadStatuses() {
       const results = await Promise.allSettled(
         pending.map(async (medicine) => {
-          const res = await fetch(
-            apiUrl(
-              `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(
-                medicine.id,
-              )}`,
-            ),
+          const res = await apiFetch(
+            `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(
+              medicine.id,
+            )}`,
             { headers },
           )
           const payload = await res.json().catch(() => null)
@@ -557,7 +551,7 @@ export default function MedicinesPage() {
       formData.set("mediId", id)
       formData.set("mediStatus", String(nextStatus))
 
-      const res = await fetch(apiUrl("/api/admin/v1/medicine/update"), {
+      const res = await apiFetch("/api/admin/v1/medicine/update", {
         method: "PATCH",
         headers,
         body: formData,
@@ -602,10 +596,8 @@ export default function MedicinesPage() {
         return
       }
 
-      const detailRes = await fetch(
-        apiUrl(
-          `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
-        ),
+      const detailRes = await apiFetch(
+        `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
         { headers },
       )
       const detailPayload = await detailRes.json().catch(() => null)
@@ -773,12 +765,10 @@ export default function MedicinesPage() {
         headers.Authorization = `Bearer ${accessToken}`
       }
 
-      const res = await fetch(
-        apiUrl(
-          isCreate
-            ? "/api/admin/v1/medicine/create"
-            : "/api/admin/v1/medicine/update",
-        ),
+      const res = await apiFetch(
+        isCreate
+          ? "/api/admin/v1/medicine/create"
+          : "/api/admin/v1/medicine/update",
         {
           method: isCreate ? "POST" : "PATCH",
           headers,
@@ -867,10 +857,8 @@ export default function MedicinesPage() {
         headers.Authorization = `Bearer ${accessToken}`
       }
 
-      const res = await fetch(
-        apiUrl(
-          `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
-        ),
+      const res = await apiFetch(
+        `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
         {
           method: "DELETE",
           headers,
@@ -911,10 +899,8 @@ export default function MedicinesPage() {
         headers.Authorization = `Bearer ${accessToken}`
       }
 
-      const res = await fetch(
-        apiUrl(
-          `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
-        ),
+      const res = await apiFetch(
+        `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,
         { headers },
       )
       const payload = await res.json().catch(() => null)

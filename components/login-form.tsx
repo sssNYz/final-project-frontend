@@ -1,5 +1,5 @@
 "use client"
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
@@ -40,10 +40,12 @@ export function LoginForm({
     try {
       setIsLoading(true)
 // เรียก API เพื่อขอล็อกอิน
-      const res = await fetch(apiUrl("/api/admin/v1/signin"), {
+      const res = await apiFetch("/api/admin/v1/signin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        skipAuth: true,
+        skipAuthRedirect: true,
       })
 // อ่านผลลัพธ์จาก API
       const data = await res.json()

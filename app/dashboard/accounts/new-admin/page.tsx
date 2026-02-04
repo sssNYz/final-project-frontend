@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
@@ -70,7 +70,7 @@ export default function NewAdminPage() {
           headers.Authorization = `Bearer ${accessToken}`
         }
 
-        const listRes = await fetch(apiUrl("/api/admin/v1/users/list"), {
+        const listRes = await apiFetch("/api/admin/v1/users/list", {
           headers,
         })
 
@@ -112,7 +112,7 @@ export default function NewAdminPage() {
         return
       }
 
-      const res = await fetch(apiUrl("/api/admin/v1/signup"), {
+      const res = await apiFetch("/api/admin/v1/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

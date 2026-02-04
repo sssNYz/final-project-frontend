@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
 
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -82,7 +82,7 @@ export default function Page() {
           headers.Authorization = `Bearer ${accessToken}`
         }
 // เรียก API เพื่อดึงข้อมูลการใช้ยา
-        const res = await fetch(apiUrl(url), {
+        const res = await apiFetch(url, {
           headers,
         })
         const data = await res.json().catch(() => null)

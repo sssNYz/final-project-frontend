@@ -1,6 +1,6 @@
 // ... existing code at top ...
 "use client"
-import { apiUrl } from "@/lib/apiClient"
+import { apiFetch } from "@/lib/apiClient"
 import { useState, useEffect, SetStateAction } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { GalleryVerticalEnd } from "lucide-react"
@@ -55,13 +55,15 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     try {
       setIsLoading(true)
 //เรียก API เพื่อยืนยัน OTP
-      const res = await fetch(apiUrl("/api/admin/v1/verifyOtp"), {
+      const res = await apiFetch("/api/admin/v1/verifyOtp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           token: otp,
         }),
+        skipAuth: true,
+        skipAuthRedirect: true,
       })
 
       const data = await res.json()
@@ -86,13 +88,15 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         allowMerge: false,
       }
 // เรียก API เพื่อ sync ข้อมูลแอดมิน
-      const syncRes = await fetch(apiUrl("/api/admin/v1/sync-admin"), {
+      const syncRes = await apiFetch("/api/admin/v1/sync-admin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(syncBody),
+        skipAuth: true,
+        skipAuthRedirect: true,
       })
 // อ่านผลลัพธ์จากการ sync ข้อมูลแอดมิน
       const syncData = await syncRes.json().catch(() => null)
