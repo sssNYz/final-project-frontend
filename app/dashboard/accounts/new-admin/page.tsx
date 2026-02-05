@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { useAlert } from "@/components/ui/alert-modal"
 
 import { apiFetch } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -28,6 +28,7 @@ import {
 
 export default function NewAdminPage() {
   const router = useRouter()
+  const { alert } = useAlert()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -81,7 +82,11 @@ export default function NewAdminPage() {
             (listData && (listData.error as string | undefined)) ||
             "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
           setError(message)
-          toast.error(message)
+          void alert({
+            variant: "error",
+            title: "เกิดข้อผิดพลาด",
+            message,
+          })
           setIsLoading(false)
           return
         }
@@ -100,14 +105,22 @@ export default function NewAdminPage() {
           const message =
             "อีเมลนี้มีอยู่ในระบบแล้ว ไม่สามารถใช้ซ้ำได้"
           setError(message)
-          toast.error(message)
+          void alert({
+            variant: "error",
+            title: "เกิดข้อผิดพลาด",
+            message,
+          })
           setIsLoading(false)
           return
         }
       } catch {
         const message = "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
         setError(message)
-        toast.error(message)
+        void alert({
+          variant: "error",
+          title: "เกิดข้อผิดพลาด",
+          message,
+        })
         setIsLoading(false)
         return
       }

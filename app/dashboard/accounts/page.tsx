@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
+import { useAlert } from "@/components/ui/alert-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchButton } from "@/components/ui/search-button"
@@ -69,6 +70,7 @@ const PAGE_SIZE = 10
 // หน้า Dashboard > บัญชีผู้ใช้งาน
 // แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ
 export default function AccountsPage() {
+  const { alert, confirm } = useAlert()
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -193,7 +195,40 @@ export default function AccountsPage() {
   }
 
   // สลับสถานะ active/ inactive ใน UI (ยังไม่ผูกกับ API)
-  function handleToggleStatus(userId: number) {
+  async function handleToggleStatus(userId: number) {
+    // หา account ที่ต้องการเปลี่ยนสถานะ
+    const target = accounts.find((account) => account.userId === userId)
+    if (!target) return
+    // ยืนยันการเปลี่ยนสถานะการใช้งาน
+    const nextStatus = !target.active
+    if (typeof window !== "undefined" && nextStatus === false) {
+      const currentEmail = window.localStorage.getItem("currentUserEmail")
+      if (
+        currentEmail &&
+        currentEmail.trim().toLowerCase() ===
+          target.email.trim().toLowerCase()
+      ) {
+        await alert({
+          variant: "error",
+          title: "ไม่สามารถปิดบัญชีตัวเองได้",
+          message:
+            "คุณกำลังล็อกอินด้วยบัญชีนี้อยู่ จึงไม่สามารถปิดการใช้งานได้",
+          confirmText: "รับทราบ",
+        })
+        return
+      }
+    }
+    const confirmed = await confirm({
+      variant: "warning",
+      title: "ยืนยันการเปลี่ยนสถานะการใช้งาน",
+      message: `ต้องการ${
+        nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
+      } บัญชี ${target.email} หรือไม่?`,
+      confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",
+      cancelText: "ยกเลิก",
+    })
+    if (!confirmed) return
+    // อัปเดตสถานะใน UI
     setAccounts((current) =>
       current.map((account) =>
         account.userId === userId
@@ -205,9 +240,13 @@ export default function AccountsPage() {
 
   // ลบบัญชีผู้ใช้งานผ่าน API และอัปเดต state เมื่อสำเร็จ
   async function handleDeleteAccount(account: AdminAccount) {
-    const confirmed = window.confirm(
-      `ต้องการลบบัญชีผู้ใช้ ${account.email} หรือไม่?`,
-    )
+    const confirmed = await confirm({
+      variant: "warning",
+      title: "ยืนยันการลบบัญชีผู้ใช้",
+      message: `ต้องการลบบัญชีผู้ใช้ ${account.email} หรือไม่?`,
+      confirmText: "ลบบัญชี",
+      cancelText: "ยกเลิก",
+    })
     if (!confirmed) return
 
     setLoadError(null)
@@ -370,7 +409,7 @@ export default function AccountsPage() {
                       วันที่เข้าสู่ระบบล่าสุด
                     </TableHead>
                     <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      จัดการ
+                      <span className="sr-only">การทำงาน</span>
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -440,10 +479,8 @@ export default function AccountsPage() {
                           <TableCell className="px-4 py-3 text-center">
                             <button
                               type="button"
-                              onClick={() =>
-                                handleDeleteAccount(account)
-                              }
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200"
+                              onClick={() => handleDeleteAccount(account)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
                               aria-label={`ลบบัญชีผู้ใช้ ${account.email}`}
                             >
                               <Trash2 className="h-4 w-4" />

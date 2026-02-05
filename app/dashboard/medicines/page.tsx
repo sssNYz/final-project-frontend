@@ -5,12 +5,12 @@ import type { CSSProperties, FormEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { FileText, Pill, Trash2 } from "lucide-react"
-import { toast } from "sonner"
 
 import { apiFetch, apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
+import { useAlert } from "@/components/ui/alert-modal"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -196,6 +196,7 @@ function mapApiMedicine(
 // หน้า Dashboard > ข้อมูลยา
 // ใช้จัดการรายการยาในระบบ (ค้นหา, กรอง, เพิ่ม/แก้ไข/ลบ และดูรายละเอียดของยาแต่ละตัว)
 export default function MedicinesPage() {
+  const { alert, confirm } = useAlert()
   const [medicines, setMedicines] = useState<MedicineRow[]>([])
   const [usageFilter, setUsageFilter] = useState<"all" | UsageType>("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -218,6 +219,18 @@ export default function MedicinesPage() {
   )
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const statusRequestedRef = useRef<Set<string>>(new Set())
+
+  const notifyError = (message: string, title = "เกิดข้อผิดพลาด") => {
+    void alert({ variant: "error", title, message })
+  }
+
+  const notifySuccess = (message: string, title = "สำเร็จ") => {
+    void alert({ variant: "success", title, message })
+  }
+
+  const notifyWarning = (message: string, title = "แจ้งเตือน") => {
+    void alert({ variant: "warning", title, message })
+  }
 
   // โหลดสถานะการใช้งานของยาทั้งหมด
   async function loadAllStatuses(
@@ -509,12 +522,27 @@ export default function MedicinesPage() {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
-
-  function handleToggleStatus(id: string) {
+// สลับสถานะการใช้งานของยา (เปิด/ปิด)
+  async function handleToggleStatus(id: string) {
     if (statusUpdating.has(id)) return
     const target = medicines.find((medicine) => medicine.id === id)
     if (!target || typeof target.status !== "boolean") return
     const nextStatus = !target.status
+    // ยืนยันการเปลี่ยนสถานะการใช้งาน
+    const label =
+      target.genericNameEn?.trim() ||
+      target.genericNameTh?.trim() ||
+      "รายการนี้"
+    const confirmed = await confirm({
+      variant: "warning",
+      title: "ยืนยันการเปลี่ยนสถานะการใช้งาน",
+      message: `ต้องการ${
+        nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
+      } ${label} หรือไม่?`,
+      confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",
+      cancelText: "ยกเลิก",
+    })
+    if (!confirmed) return
 
     setMedicines((current) =>
       current.map((medicine) =>
@@ -567,7 +595,7 @@ export default function MedicinesPage() {
               : medicine,
           ),
         )
-        toast.error(
+        notifyError(
           (payload && (payload.error as string | undefined)) ||
             "อัปเดตสถานะการใช้งานไม่สำเร็จ",
         )
@@ -626,7 +654,7 @@ export default function MedicinesPage() {
             : medicine,
         ),
       )
-      toast.error("เกิดข้อผิดพลาดในการอัปเดตสถานะการใช้งาน")
+      notifyError("เกิดข้อผิดพลาดในการอัปเดตสถานะการใช้งาน")
     } finally {
       setStatusUpdating((current) => {
         const next = new Set(current)
@@ -720,7 +748,10 @@ export default function MedicinesPage() {
 
     // ต้องกรอกชื่อสามัญยา (ไทย/อังกฤษ) อย่างน้อยสำหรับการเพิ่ม/แก้ไข
     if (!data.genericNameTh || !data.genericNameEn) {
-      toast.error("กรุณากรอกชื่อสามัญยา (ไทย) และชื่อสามัญยา (อังกฤษ)")
+      notifyWarning(
+        "กรุณากรอกชื่อสามัญยา (ไทย) และชื่อสามัญยา (อังกฤษ)",
+        "กรุณากรอกข้อมูลให้ครบถ้วน",
+      )
       return
     }
 
@@ -782,7 +813,7 @@ export default function MedicinesPage() {
         const message =
           (payload && (payload.error as string | undefined)) ||
           "ไม่สามารถบันทึกข้อมูลยาได้"
-        toast.error(message)
+        notifyError(message)
         return
       }
 
@@ -791,7 +822,7 @@ export default function MedicinesPage() {
         | null
 
       if (!apiMedicine) {
-        toast.error("บันทึกข้อมูลยาไม่สำเร็จ: รูปแบบข้อมูลไม่ถูกต้อง")
+        notifyError("บันทึกข้อมูลยาไม่สำเร็จ: รูปแบบข้อมูลไม่ถูกต้อง")
         return
       }
 
@@ -825,12 +856,12 @@ export default function MedicinesPage() {
         fileInputRef.current.value = ""
       }
 
-      toast.success(
+      notifySuccess(
         isCreate ? "เพิ่มข้อมูลยาเรียบร้อยแล้ว" : "แก้ไขข้อมูลยาเรียบร้อยแล้ว",
       )
     } catch (error) {
       console.error("Error saving medicine:", error)
-      toast.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลยา")
+      notifyError("เกิดข้อผิดพลาดในการบันทึกข้อมูลยา")
     }
   }
 
@@ -841,9 +872,13 @@ export default function MedicinesPage() {
       medicine?.genericNameEn?.trim() ||
       medicine?.genericNameTh?.trim() ||
       "รายการนี้"
-    const confirmed = window.confirm(
-      `ต้องการลบข้อมูลยา ${label} หรือไม่?`,
-    )
+    const confirmed = await confirm({
+      variant: "warning",
+      title: "ยืนยันการลบข้อมูลยา",
+      message: `ต้องการลบข้อมูลยา ${label} หรือไม่?`,
+      confirmText: "ลบข้อมูล",
+      cancelText: "ยกเลิก",
+    })
     if (!confirmed) return
 
     try {
@@ -867,17 +902,17 @@ export default function MedicinesPage() {
 
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        toast.error(
+        notifyError(
           (payload && (payload.error as string | undefined)) ||
             "ลบข้อมูลยาไม่สำเร็จ",
         )
         return
       }
 
-      toast.success("ลบข้อมูลยาเรียบร้อยแล้ว")
+      notifySuccess("ลบข้อมูลยาเรียบร้อยแล้ว")
       await reloadMedicines()
     } catch {
-      toast.error("เกิดข้อผิดพลาดในการลบข้อมูลยา")
+      notifyError("เกิดข้อผิดพลาดในการลบข้อมูลยา")
     }
   }
 
@@ -1061,9 +1096,12 @@ export default function MedicinesPage() {
                               const file = files[0]
 
                               if (file.type !== "image/png") {
-                                window.alert(
-                                  "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
-                                )
+                                void alert({
+                                  variant: "warning",
+                                  title: "ไฟล์ไม่ถูกต้อง",
+                                  message:
+                                    "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
+                                })
                                 event.target.value = ""
                                 setSelectedFileName(null)
                                 return

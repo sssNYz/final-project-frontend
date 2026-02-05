@@ -3,11 +3,12 @@
 import type { CSSProperties } from "react"
 import { useEffect, useMemo, useState } from "react"
 
-import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, X } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, Trash2, X } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
+import { useAlert } from "@/components/ui/alert-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchButton } from "@/components/ui/search-button"
@@ -195,6 +196,7 @@ function formatDisplayDate(isoDate: string) {
 
 // คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
 export default function RequestsPage() {
+  const { confirm } = useAlert()
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
@@ -500,6 +502,19 @@ export default function RequestsPage() {
       setLoadError("เกิดข้อผิดพลาดในการอัปเดตสถานะ")
       return false
     }
+  }
+
+  async function handleRejectRequest(request: RequestRow) {
+    if (request.status !== "pending") return
+    const confirmed = await confirm({
+      variant: "warning",
+      title: "ยืนยันการปฏิเสธคำร้อง",
+      message: `ต้องการปฏิเสธคำร้องจาก ${request.email} หรือไม่?`,
+      confirmText: "ปฏิเสธ",
+      cancelText: "ยกเลิก",
+    })
+    if (!confirmed) return
+    await updateStatus(request.id, "rejected")
   }
 
   function openRequestDetail(request: RequestRow) {
@@ -814,7 +829,7 @@ export default function RequestsPage() {
                           สถานะคำร้อง
                         </TableHead>
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          จัดการ
+                          <span className="sr-only">การทำงาน</span>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -863,17 +878,30 @@ export default function RequestsPage() {
                               {STATUS_LABELS[request.status]}
                             </span>
                           </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openRequestDetail(request)
-                              }
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200"
-                              aria-label="ดูรายละเอียดคำร้อง"
-                            >
-                              <FileText className="h-4 w-4" />
-                            </button>
+                          <TableCell className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRejectRequest(request)}
+                                disabled={request.status !== "pending"}
+                                className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+                                  request.status !== "pending"
+                                    ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                                    : "bg-red-100 text-red-600 hover:bg-red-200"
+                                }`}
+                                aria-label="ปฏิเสธคำร้อง"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openRequestDetail(request)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
+                                aria-label="ดูรายละเอียดคำร้อง"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
