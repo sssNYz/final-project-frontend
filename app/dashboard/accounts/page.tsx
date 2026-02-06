@@ -120,22 +120,30 @@ export default function AccountsPage() {
         const items = (data?.accounts ?? []) as {
           userId: number
           email: string
-          role: AccountRole
+          role: string
           active: boolean
           lastLogin: Date | string | null
         }[]
-        
-        const accounts: AdminAccount[] = items.map((item) => ({
-          userId: item.userId,
-          email: item.email,
-          role: item.role,
-          active: item.active,
-          lastLogin: item.lastLogin
-            ? typeof item.lastLogin === "string"
-              ? item.lastLogin
-              : new Date(item.lastLogin).toISOString()
-            : null,
-        }))
+
+        const accounts: AdminAccount[] = items
+          .filter((item) => {
+            const normalizedRole = String(item.role ?? "").trim().toLowerCase()
+            if (normalizedRole === "superadmin") {
+              return false
+            }
+            return normalizedRole === "admin" || normalizedRole === "member"
+          })
+          .map((item) => ({
+            userId: item.userId,
+            email: item.email,
+            role: String(item.role ?? "").trim().toLowerCase() as AccountRole,
+            active: item.active,
+            lastLogin: item.lastLogin
+              ? typeof item.lastLogin === "string"
+                ? item.lastLogin
+                : new Date(item.lastLogin).toISOString()
+              : null,
+          }))
   
         setAccounts(accounts)
       } catch {
