@@ -3,12 +3,11 @@
 import type { CSSProperties } from "react"
 import { useEffect, useMemo, useState } from "react"
 
-import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, Trash2, X } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, X } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
-import { useAlert } from "@/components/ui/alert-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchButton } from "@/components/ui/search-button"
@@ -39,7 +38,7 @@ import {
 } from "@/components/ui/table"
 import { apiFetch, apiUrl } from "@/lib/apiClient"
 
-type RequestStatus = "pending" | "rejected" | "completed"
+type RequestStatus = "PENDING" | "REJECTED" | "DONE"
 
 type RequestCategory =
   | "PROBLEM"
@@ -60,16 +59,16 @@ type RequestRow = {
 }
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
-  pending: "รอยืนยัน",
-  rejected: "ปฏิเสธ",
-  completed: "เสร็จสิ้น",
+  PENDING: "รอยืนยัน",
+  REJECTED: "ปฏิเสธ",
+  DONE: "เสร็จสิ้น",
 }
 
 const STATUS_BADGE_CLASSES: Record<RequestStatus, string> = {
-  pending:
+  PENDING:
     "border-orange-400 bg-orange-100 text-orange-700",
-  rejected: "border-red-400 bg-red-100 text-red-700",
-  completed:
+  REJECTED: "border-red-400 bg-red-100 text-red-700",
+  DONE:
     "border-emerald-500 bg-emerald-100 text-emerald-700",
 }
 
@@ -87,11 +86,11 @@ const initialRequests: RequestRow[] = []
 
 function normalizeStatus(value?: string | null): RequestStatus {
   const normalized = (value ?? "").toLowerCase()
-  if (normalized.includes("reject")) return "rejected"
+  if (normalized.includes("reject")) return "REJECTED"
   if (normalized.includes("complete") || normalized.includes("done")) {
-    return "completed"
+    return "DONE"
   }
-  return "pending"
+  return "PENDING"
 }
 
 function normalizeCategory(value?: string | null): RequestCategory {
@@ -196,7 +195,6 @@ function formatDisplayDate(isoDate: string) {
 
 // คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
 export default function RequestsPage() {
-  const { confirm } = useAlert()
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
@@ -420,13 +418,13 @@ export default function RequestsPage() {
     // นับจำนวนคำร้องตามสถานะจากชุด baseFilteredRequests
     // (ตัวเลขสรุปสถานะไม่ถูกเปลี่ยนตาม statusFilter)
     const pending = baseFilteredRequests.filter(
-      (item) => item.status === "pending",
+      (item) => item.status === "PENDING",
     ).length
     const rejected = baseFilteredRequests.filter(
-      (item) => item.status === "rejected",
+      (item) => item.status === "REJECTED",
     ).length
     const completed = baseFilteredRequests.filter(
-      (item) => item.status === "completed",
+      (item) => item.status === "DONE",
     ).length
     const totalCount = baseFilteredRequests.length
 
@@ -504,19 +502,6 @@ export default function RequestsPage() {
     }
   }
 
-  async function handleRejectRequest(request: RequestRow) {
-    if (request.status !== "pending") return
-    const confirmed = await confirm({
-      variant: "warning",
-      title: "ยืนยันการปฏิเสธคำร้อง",
-      message: `ต้องการปฏิเสธคำร้องจาก ${request.email} หรือไม่?`,
-      confirmText: "ปฏิเสธ",
-      cancelText: "ยกเลิก",
-    })
-    if (!confirmed) return
-    await updateStatus(request.id, "rejected")
-  }
-
   function openRequestDetail(request: RequestRow) {
     setActiveRequest(request)
   }
@@ -526,7 +511,7 @@ export default function RequestsPage() {
   }
 
   async function resolveFromDetail(
-    status: Exclude<RequestStatus, "pending">,
+    status: Exclude<RequestStatus, "PENDING">,
   ) {
     if (!activeRequest) return
     const ok = await updateStatus(activeRequest.id, status)
@@ -602,9 +587,9 @@ export default function RequestsPage() {
                       </SelectTrigger>
                       <SelectContent align="start">
                         <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="pending">รอยืนยัน</SelectItem>
-                        <SelectItem value="rejected">ปฏิเสธ</SelectItem>
-                        <SelectItem value="completed">เสร็จสิ้น</SelectItem>
+                        <SelectItem value="PENDING">รอยืนยัน</SelectItem>
+                        <SelectItem value="REJECTED">ปฏิเสธ</SelectItem>
+                        <SelectItem value="DONE">เสร็จสิ้น</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="h-5 w-px bg-slate-200" />
@@ -733,14 +718,14 @@ export default function RequestsPage() {
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilter === "pending" ? "all" : "pending"
+                        statusFilter === "PENDING" ? "all" : "PENDING"
                       setStatusFilter(next)
                       setStatusFilterInput(next)
                       setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "pending"}
+                    aria-pressed={statusFilter === "PENDING"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
-                      statusFilter === "pending"
+                      statusFilter === "PENDING"
                         ? "border-orange-700 bg-orange-600 text-white shadow-sm"
                         : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
                     }`}
@@ -754,14 +739,14 @@ export default function RequestsPage() {
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilter === "rejected" ? "all" : "rejected"
+                        statusFilter === "REJECTED" ? "all" : "REJECTED"
                       setStatusFilter(next)
                       setStatusFilterInput(next)
                       setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "rejected"}
+                    aria-pressed={statusFilter === "REJECTED"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
-                      statusFilter === "rejected"
+                      statusFilter === "REJECTED"
                         ? "border-red-700 bg-red-600 text-white shadow-sm"
                         : "border-red-500 bg-red-500 text-red-50 hover:bg-red-600"
                     }`}
@@ -775,14 +760,14 @@ export default function RequestsPage() {
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilter === "completed" ? "all" : "completed"
+                        statusFilter === "DONE" ? "all" : "DONE"
                       setStatusFilter(next)
                       setStatusFilterInput(next)
                       setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "completed"}
+                    aria-pressed={statusFilter === "DONE"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
-                      statusFilter === "completed"
+                      statusFilter === "DONE"
                         ? "border-emerald-800 bg-emerald-700 text-white shadow-sm"
                         : "border-emerald-700 bg-emerald-600 text-emerald-50 hover:bg-emerald-700"
                     }`}
@@ -880,19 +865,6 @@ export default function RequestsPage() {
                           </TableCell>
                           <TableCell className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleRejectRequest(request)}
-                                disabled={request.status !== "pending"}
-                                className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
-                                  request.status !== "pending"
-                                    ? "cursor-not-allowed bg-slate-200 text-slate-400"
-                                    : "bg-red-100 text-red-600 hover:bg-red-200"
-                                }`}
-                                aria-label="ปฏิเสธคำร้อง"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
                               <button
                                 type="button"
                                 onClick={() => openRequestDetail(request)}
@@ -1068,18 +1040,18 @@ export default function RequestsPage() {
                       </button>
                     </div>
                     </div>
-                    {activeRequest.status === "pending" && (
+                    {activeRequest.status === "PENDING" && (
                       <div className="mt-6 flex items-center justify-between gap-4">
                         <Button
                           type="button"
-                          onClick={() => resolveFromDetail("rejected")}
+                          onClick={() => resolveFromDetail("REJECTED")}
                           className="flex-1 rounded-none bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
                         >
                           ปฏิเสธ
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => resolveFromDetail("completed")}
+                          onClick={() => resolveFromDetail("DONE")}
                           className="flex-1 rounded-none bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
                         >
                           เสร็จสิ้น
