@@ -28,18 +28,18 @@ const data = {
   mainNav: [
     {
       title: "บัญชีผู้ใช้งาน",
-      url: "/dashboard/accounts",
+      url: "/accounts",
       icon: IconUsers,
       children: [
         {
           title: "เพิ่มบัญชีผู้ดูแลระบบ",
-          url: "/dashboard/accounts/new-admin",
+          url: "/accounts/new-admin",
         },
       ],
     },
     {
       title: "ข้อมูลยา",
-      url: "/dashboard/medicines",
+      url: "/medicines",
       icon: IconDatabase,
     },
     {
@@ -49,7 +49,7 @@ const data = {
     },
     {
       title: "รายการคำร้อง",
-      url: "/dashboard/requests",
+      url: "/requests",
       icon: IconListDetails,
     },
   ],

@@ -85,7 +85,6 @@ export default function AccountsPage() {
   const [currentPage, setCurrentPage] = useState(1)
 
   // โหลดรายการบัญชีผู้ใช้งานจาก API เมื่อเปิดหน้า
-
   useEffect(() => {
     async function fetchAccounts() {
       try {
@@ -310,7 +309,7 @@ export default function AccountsPage() {
                 className="h-9 rounded-md bg-emerald-500 px-4 text-xs font-semibold text-white shadow-md hover:bg-emerald-600"
                 asChild
               >
-                <a href="/dashboard/accounts/new-admin">
+                <a href="/accounts/new-admin">
                   + เพิ่มบัญชีผู้ดูแลระบบ
                 </a>
               </Button>
