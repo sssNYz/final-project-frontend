@@ -1,11 +1,11 @@
 
-"use client"
+"use client"// ใช้ React hooks และ state ในคอมโพเนนต์นี้
 
 import type { CSSProperties, FormEvent } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
-
-import { FileText, Pill, Trash2 } from "lucide-react"
-
+// ไอคอนจากไลบรารี lucide-react
+import { FileText, Pill, Search, Trash2 } from "lucide-react"
+// ฟังก์ชันสำหรับเรียก API ภายในแอป
 import { apiFetch, apiUrl } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -1415,8 +1415,17 @@ export default function MedicinesPage() {
                           className="even:bg-slate-50/70"
                         >
                           <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-slate-100 p-1">
+                            <div className="flex items-center gap-3">                           
+                              <div className="group relative"> 
+                                <div
+                                  onClick={() =>
+                                    setExpandedImage(
+                                      medicine.imageUrl ||
+                                        "/medicine-placeholder.svg",
+                                    )
+                                  }
+                                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-slate-100 p-1"
+                                >
                                 {medicine.imageUrl ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
@@ -1432,6 +1441,10 @@ export default function MedicinesPage() {
                                     className="h-full w-full object-contain"
                                   />
                                 )}
+                                </div>
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <Search className="h-4 w-4 text-white" />
+                                </div>
                               </div>
                               <div>
                                 <div>{medicine.genericNameEn}</div>
@@ -1598,6 +1611,10 @@ export default function MedicinesPage() {
         <Drawer
           open={Boolean(viewingMedicine)}
           onOpenChange={(open) => {
+            if (!open && expandedImage) {
+              setExpandedImage(null)
+              return
+            }
             if (!open) {
               setViewingMedicine(null)
             }
@@ -1741,6 +1758,7 @@ export default function MedicinesPage() {
       {expandedImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          style={{ zIndex: 110 }}
           onClick={() => setExpandedImage(null)}
           role="presentation"
         >
