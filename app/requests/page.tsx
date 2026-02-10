@@ -59,7 +59,7 @@ type RequestRow = {
 }
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
-  PENDING: "รอยืนยัน",
+  PENDING: "รอดำเนินการ",
   REJECTED: "ปฏิเสธ",
   DONE: "ดำเนินการแล้ว",
 }
@@ -587,7 +587,7 @@ export default function RequestsPage() {
                       </SelectTrigger>
                       <SelectContent align="start">
                         <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="PENDING">รอยืนยัน</SelectItem>
+                        <SelectItem value="PENDING">รอดำเนินการ</SelectItem>
                         <SelectItem value="REJECTED">ปฏิเสธ</SelectItem>
                         <SelectItem value="DONE">ดำเนินการแล้ว</SelectItem>
                       </SelectContent>
@@ -730,7 +730,7 @@ export default function RequestsPage() {
                         : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
                     }`}
                   >
-                    <span>รอยืนยัน</span>
+                    <span>รอดำเนินการ</span>
                     <span className="text-sm font-bold">
                       {pendingCount}
                     </span>
