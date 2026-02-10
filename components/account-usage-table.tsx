@@ -105,7 +105,7 @@ export function AccountUsageTable({
                 />
               </TableHead>
             )}
-            <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
+            <TableHead className="w-48 px-4 py-3 text-center text-xs font-semibold text-white">
               บัญชีผู้ใช้
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
@@ -129,13 +129,13 @@ export function AccountUsageTable({
                   />
                 </TableCell>
               )}
-              <TableCell className="px-4 py-3 text-left text-sm font-medium text-slate-800">
+              <TableCell className="w-48 truncate px-4 py-3 text-left text-sm font-medium text-slate-800">
                 {row.name}
               </TableCell>
-              <TableCell className="px-4 py-3 text-left text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.profiles}
               </TableCell>
-              <TableCell className="px-4 py-3 text-left text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
                 {row.rows}
               </TableCell>
             </TableRow>
