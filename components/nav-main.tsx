@@ -69,7 +69,7 @@ export function NavMain({
                         <SidebarMenuSubItem key={child.title}>
                           <SidebarMenuSubButton
                             asChild
-                            size="sm"
+                            size="md"
                             isActive={isChildActive}
                           >
                             <a href={child.url}>{child.title}</a>

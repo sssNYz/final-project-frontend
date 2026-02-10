@@ -151,6 +151,7 @@ export default function NewAdminPage() {
 
   return (
     <SidebarProvider
+      open
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
