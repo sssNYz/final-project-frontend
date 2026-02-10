@@ -129,13 +129,13 @@ export function AccountUsageTable({
                   />
                 </TableCell>
               )}
-              <TableCell className="px-4 py-3 text-center text-sm font-medium text-slate-800">
+              <TableCell className="px-4 py-3 text-left text-sm font-medium text-slate-800">
                 {row.name}
               </TableCell>
-              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-left text-sm text-slate-700">
                 {row.profiles}
               </TableCell>
-              <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
+              <TableCell className="px-4 py-3 text-left text-sm text-slate-700">
                 {row.rows}
               </TableCell>
             </TableRow>
