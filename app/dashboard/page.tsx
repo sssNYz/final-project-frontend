@@ -36,10 +36,9 @@ type AccountRow = {
 export default function Page() {
   const [rows, setRows] = useState<AccountRow[]>([])
   const defaultRange = useMemo(() => {
-    const today = new Date()
     return {
-      from: new Date(0),
-      to: today,
+      from: undefined,
+      to: undefined,
     }
   }, [])
   const [fromDateInput, setFromDateInput] = useState<Date | undefined>(

@@ -235,11 +235,45 @@ export default function AccountsPage() {
       cancelText: "ยกเลิก",
     })
     if (!confirmed) return
+
+    setLoadError(null)
+
+    try {
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await apiFetch(`/api/admin/v1/users/${userId}`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ status: nextStatus }),
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "Unable to update user status.",
+        )
+        return
+      }
+    } catch {
+      setLoadError("Unable to update user status.")
+      return
+    }
     // อัปเดตสถานะใน UI
     setAccounts((current) =>
       current.map((account) =>
         account.userId === userId
-          ? { ...account, active: !account.active }
+          ? { ...account, active: nextStatus }
           : account,
       ),
     )
@@ -565,6 +599,4 @@ export default function AccountsPage() {
     </SidebarProvider>
   )
 }
-
-
 
