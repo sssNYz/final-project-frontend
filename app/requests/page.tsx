@@ -61,7 +61,7 @@ type RequestRow = {
 const STATUS_LABELS: Record<RequestStatus, string> = {
   PENDING: "รอยืนยัน",
   REJECTED: "ปฏิเสธ",
-  DONE: "เสร็จสิ้น",
+  DONE: "ดำเนินการแล้ว",
 }
 
 const STATUS_BADGE_CLASSES: Record<RequestStatus, string> = {
@@ -589,7 +589,7 @@ export default function RequestsPage() {
                         <SelectItem value="all">ทั้งหมด</SelectItem>
                         <SelectItem value="PENDING">รอยืนยัน</SelectItem>
                         <SelectItem value="REJECTED">ปฏิเสธ</SelectItem>
-                        <SelectItem value="DONE">เสร็จสิ้น</SelectItem>
+                        <SelectItem value="DONE">ดำเนินการแล้ว</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="h-5 w-px bg-slate-200" />
@@ -772,7 +772,7 @@ export default function RequestsPage() {
                         : "border-emerald-700 bg-emerald-600 text-emerald-50 hover:bg-emerald-700"
                     }`}
                   >
-                    <span>เสร็จสิ้น</span>
+                    <span>ดำเนินการแล้ว</span>
                     <span className="text-sm font-bold">
                       {completedCount}
                     </span>
@@ -1054,7 +1054,7 @@ export default function RequestsPage() {
                           onClick={() => resolveFromDetail("DONE")}
                           className="flex-1 rounded-none bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
                         >
-                          เสร็จสิ้น
+                          ดำเนินการแล้ว
                         </Button>
                       </div>
                     )}
