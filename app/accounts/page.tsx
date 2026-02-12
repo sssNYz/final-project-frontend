@@ -291,18 +291,28 @@ export default function AccountsPage() {
     if (!confirmed) return
 
     setLoadError(null)
-
+// เรียก API เพื่อลบบัญชีผู้ใช้งาน
     try {
       const validId =
         typeof account.userId === "number" &&
         Number.isInteger(account.userId) &&
         account.userId > 0
-          ? String(account.userId)
-          : "0"
-      const deleteUrl = `/api/admin/v1/users/${validId}?email=${encodeURIComponent(account.email)}`
+          ? account.userId
+          : null
 
-      const res = await apiFetch(deleteUrl, {
+      if (!validId) {
+        setLoadError("ไม่พบรหัสผู้ใช้ที่ถูกต้องสำหรับการลบ")
+        return
+      }
+      const res = await apiFetch("/api/admin/v2/users/delete", {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userIds: [validId],
+          confirm: "CONFIRM",
+        }),
       })
 
       const data = await res.json().catch(() => null)
@@ -599,4 +609,3 @@ export default function AccountsPage() {
     </SidebarProvider>
   )
 }
-
