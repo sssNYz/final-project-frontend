@@ -73,8 +73,8 @@ function clearAuthStorage() {
 export function handleUnauthorized() {
   if (typeof window === "undefined") return
   clearAuthStorage()
-  if (window.location.pathname !== "/login") {
-    window.location.href = "/login"
+  if (window.location.pathname !== "/") {
+    window.location.href = "/"
   } else {
     window.location.reload()
   }
