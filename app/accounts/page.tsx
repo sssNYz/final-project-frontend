@@ -249,11 +249,11 @@ export default function AccountsPage() {
       if (accessToken) {
         headers.Authorization = `Bearer ${accessToken}`
       }
-
+// เรียก API เพื่ออัปเดตสถานะบัญชีผู้ใช้งาน
       const res = await apiFetch(`/api/admin/v1/users/${userId}`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ active: nextStatus }),
+        body: JSON.stringify({ status: nextStatus }),
       })
 
       const data = await res.json().catch(() => null)
@@ -399,8 +399,8 @@ export default function AccountsPage() {
                         </SelectTrigger>
                         <SelectContent align="start">
                           <SelectItem value="all">ทั้งหมด</SelectItem>
-                          <SelectItem value="active">ON</SelectItem>
-                          <SelectItem value="inactive">OFF</SelectItem>
+                          <SelectItem value="active">เปิดใช้งาน</SelectItem>
+                          <SelectItem value="inactive">ปิดใช้งาน</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="h-5 w-px bg-slate-200" />
@@ -512,7 +512,9 @@ export default function AccountsPage() {
                               }`}
                               aria-pressed={account.active}
                             >
-                              <span>{account.active ? "ON" : "OFF"}</span>
+                              <span>
+                                {account.active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                              </span>
                               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
                                 <span
                                   className={`h-2.5 w-2.5 rounded-full ${

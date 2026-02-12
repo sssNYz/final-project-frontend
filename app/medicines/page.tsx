@@ -1502,8 +1502,8 @@ export default function MedicinesPage() {
                               <span>
                                 {typeof medicine.status === "boolean"
                                   ? medicine.status
-                                    ? "ON"
-                                    : "OFF"
+                                    ? "เปิดใช้งาน"
+                                    : "ปิดใช้งาน"
                                   : "--"}
                               </span>
                               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
