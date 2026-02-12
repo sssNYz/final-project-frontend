@@ -3,9 +3,15 @@
 import { apiFetch } from "@/lib/apiClient"
 import { useState, useEffect, SetStateAction } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { GalleryVerticalEnd } from "lucide-react"
+import { ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
@@ -42,13 +48,13 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
 
     // ตรวจสอบค่า email และ otp 
     if (!email) {
-      setError("Email is missing")
+      setError("ไม่พบอีเมลสำหรับยืนยันตัวตน")
       return
     }
 
     // ตรวจสอบรูปแบบ OTP ต้องเป็นตัวเลข 6 หลัก
     if (otp.length !== 6) {
-      setError("Code must be 6 digits")
+      setError("กรอกรหัสให้ครบ 6 หลัก")
       return
     }
 
@@ -69,7 +75,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data?.error || "Verify failed")
+        setError(data?.error || "ยืนยันรหัสไม่สำเร็จ")
         return
       }
 
@@ -77,7 +83,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       const accessToken = data.user?.session?.access_token
 
       if (!supabaseUserId || !accessToken) {
-        setError("Invalid verify response")
+        setError("ข้อมูลยืนยันไม่ครบถ้วน")
         return
       }
 // เตรียมข้อมูลสำหรับ sync-admin
@@ -102,13 +108,13 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       const syncData = await syncRes.json().catch(() => null)
 // ตรวจสอบผลลัพธ์การ sync ข้อมูลแอดมิน
       if (!syncRes.ok) {
-        setError(syncData?.error || "Sync admin failed")
+        setError(syncData?.error || "ซิงก์ข้อมูลผู้ดูแลไม่สำเร็จ")
         return
       }
 // นำผู้ใช้ไปยังหน้า Dashboard หลังยืนยัน OTP และ sync ข้อมูลสำเร็จ
       router.push("/dashboard")
     } catch (err) {
-      setError("Network error")
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ")
     } finally {
       setIsLoading(false)
     }
@@ -116,72 +122,78 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
 // เรนเดอร์ฟอร์มกรอกรหัส OTP
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={handleSubmit}>
-        <FieldGroup>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <a
-              href="#"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
-              </div>
-              <span className="sr-only">Acme Inc.</span>
-            </a>
-            <h1 className="text-xl font-bold">Enter verification code</h1>
-            <FieldDescription>
-              We sent a 6-digit code to your email address
-            </FieldDescription>
+      <Card className="rounded-3xl border border-sky-400/30 bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-sky-900/80 shadow-2xl shadow-sky-500/20 backdrop-blur-2xl">
+        <CardHeader className="pb-5 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white shadow-inner">
+            <ShieldCheck className="h-5 w-5" />
           </div>
+          <CardTitle className="mt-4 text-2xl font-bold text-white">
+            ยืนยันรหัส OTP
+          </CardTitle>
+          <p className="text-sm text-white/70">
+            เราส่งรหัส 6 หลักไปที่{" "}
+            <span className="font-semibold text-white">
+              {email || "อีเมลของคุณ"}
+            </span>
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FieldGroup className="space-y-2">
+              <Field>
+                <FieldLabel htmlFor="otp" className="sr-only">
+                  รหัสยืนยัน
+                </FieldLabel>
+                <InputOTP
+                  maxLength={6}
+                  id="otp"
+                  required
+                  containerClassName="gap-3 justify-center"
+                  value={otp}
+                  onChange={(value: SetStateAction<string>) => setOtp(value)}
+                >
+                  <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-14 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:rounded-xl *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:border-white/20 *:data-[slot=input-otp-slot]:bg-white/10 *:data-[slot=input-otp-slot]:text-lg *:data-[slot=input-otp-slot]:text-white *:data-[slot=input-otp-slot]:shadow-inner">
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator className="text-white/60" />
+                  <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-14 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:rounded-xl *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:border-white/20 *:data-[slot=input-otp-slot]:bg-white/10 *:data-[slot=input-otp-slot]:text-lg *:data-[slot=input-otp-slot]:text-white *:data-[slot=input-otp-slot]:shadow-inner">
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+                <FieldDescription className="text-center text-xs text-white/60">
+                  ไม่ได้รับรหัส?{" "}
+                  <a
+                    href="#"
+                    className="font-semibold text-sky-300 hover:text-sky-200"
+                  >
+                    ส่งอีกครั้ง
+                  </a>
+                </FieldDescription>
+              </Field>
 
-          <Field>
-            <FieldLabel htmlFor="otp" className="sr-only">
-              Verification code
-            </FieldLabel>
-            
-            <InputOTP
-              maxLength={6}
-              id="otp"
-              required
-              containerClassName="gap-4"
-              value={otp}
-              onChange={(value: SetStateAction<string>) => setOtp(value)}
-            >
-              <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-16 *:data-[slot=input-otp-slot]:w-12 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-16 *:data-[slot=input-otp-slot]:w-12 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-            <FieldDescription className="text-center">
-              Didn&apos;t receive the code? <a href="#">Resend</a>
-            </FieldDescription>
-          </Field>
+              {error && (
+                <p className="text-center text-sm text-rose-300">
+                  {error}
+                </p>
+              )}
 
-          {error && (
-            <p className="text-red-500 text-sm text-center">
-              {error}
-            </p>
-          )}
-
-          <Field>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Verifying..." : "Verify"}
-            </Button>
-          </Field>
-        </FieldGroup>
-      </form>
-
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
+              <Field>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="mt-2 w-full rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600"
+                >
+                  {isLoading ? "กำลังตรวจสอบ..." : "ยืนยันรหัส"}
+                </Button>
+              </Field>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
