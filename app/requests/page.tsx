@@ -1,9 +1,17 @@
 ﻿"use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
-import { Calendar as CalendarIcon, Clock, FileText, Image as ImageIcon, X } from "lucide-react"
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  ExternalLink,
+  FileText,
+  Image as ImageIcon,
+  X,
+} from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -195,6 +203,7 @@ function formatDisplayDate(isoDate: string) {
 
 // คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
 export default function RequestsPage() {
+  const searchParams = useSearchParams()
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
@@ -224,6 +233,7 @@ export default function RequestsPage() {
   const [activeRequest, setActiveRequest] =
     useState<RequestRow | null>(null)
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const openedRequestIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     async function fetchRequests() {
@@ -336,6 +346,25 @@ export default function RequestsPage() {
 
     fetchRequests()
   }, [])
+
+  const requestIdFromQuery = useMemo(() => {
+    const value = searchParams.get("requestId")
+    return value ? value.trim() : ""
+  }, [searchParams])
+
+  // ถ้ามี requestId ใน URL ให้เปิดรายละเอียดครั้งแรก (รองรับเปิดในแท็บใหม่)
+  useEffect(() => {
+    if (!requestIdFromQuery || requests.length === 0) return
+    if (openedRequestIdRef.current === requestIdFromQuery) return
+
+    const matched = requests.find(
+      (request) => request.id === requestIdFromQuery,
+    )
+    if (matched) {
+      openedRequestIdRef.current = requestIdFromQuery
+      setActiveRequest(matched)
+    }
+  }, [requestIdFromQuery, requests])
 
   // ตั้งค่า default ให้ช่วงวันที่เป็นวันที่เก่าที่สุดและใหม่ที่สุดจากรายการคำร้อง
   useEffect(() => {
@@ -873,6 +902,17 @@ export default function RequestsPage() {
                               >
                                 <FileText className="h-4 w-4" />
                               </button>
+                              <a
+                                href={`/requests?requestId=${encodeURIComponent(
+                                  request.id,
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300"
+                                aria-label="เปิดคำร้องในแท็บใหม่"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -943,8 +983,15 @@ export default function RequestsPage() {
             </section>
 
             {activeRequest && (
-              <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-4">
-                <div className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-br from-sky-900 via-sky-700 to-slate-700 p-6 text-white shadow-2xl">
+              <div
+                className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-4"
+                onClick={closeRequestDetail}
+                role="presentation"
+              >
+                <div
+                  className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-br from-sky-900 via-sky-700 to-slate-700 p-6 text-white shadow-2xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <button
                     type="button"
                     onClick={closeRequestDetail}
@@ -1087,6 +1134,3 @@ export default function RequestsPage() {
     </SidebarProvider>
   )
 }
-
-
-
