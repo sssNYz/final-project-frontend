@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
   Table,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 
 type AccountRow = {
+  id: number
   name: string
   profiles: number
   rows: number
@@ -21,7 +22,8 @@ type Props = {
   rows: AccountRow[]
   pageSize?: number
   selectable?: boolean
-  onDeleteSelected?: (names: string[]) => void
+  onDeleteSelected?: (ids: number[]) => void
+  deleteDisabled?: boolean
 }
 
 // ตารางสรุปปริมาณการใช้งานต่อบัญชี พร้อมแบ่งหน้าและเลือกหลายรายการได้
@@ -30,9 +32,10 @@ export function AccountUsageTable({
   pageSize = 10,
   selectable = false,
   onDeleteSelected,
+  deleteDisabled = false,
 }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedNames, setSelectedNames] = useState<string[]>([])
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
 
   // คำนวณจำนวนหน้า และแบ่งข้อมูลตาม pageSize
   const { totalPages, safePage, paginatedRows } = useMemo(() => {
@@ -49,6 +52,7 @@ export function AccountUsageTable({
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
+  const columnCount = 3 + (selectable ? 1 : 0)
 
   // เปลี่ยนหน้าปัจจุบันของตาราง
   function goToPage(page: number) {
@@ -57,32 +61,43 @@ export function AccountUsageTable({
   }
 
   // เลือก/ยกเลิกเลือกแถวตามชื่อบัญชี (ใช้สำหรับลบหลายรายการพร้อมกัน)
-  function toggleSelect(name: string) {
-    setSelectedNames((prev) =>
-      prev.includes(name)
-        ? prev.filter((value) => value !== name)
-        : [...prev, name],
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((value) => value !== id)
+        : [...prev, id],
     )
   }
 
   // เรียก callback ลบรายการที่ถูกเลือก และรีเซ็ตการเลือก/หน้า
   function deleteSelected() {
-    if (!onDeleteSelected || selectedNames.length === 0) return
-    onDeleteSelected(selectedNames)
-    setSelectedNames([])
+    if (deleteDisabled) return
+    if (!onDeleteSelected || selectedIds.length === 0) return
+    onDeleteSelected(selectedIds)
+    setSelectedIds([])
     setCurrentPage(1)
   }
 
-  const hasSelection = selectedNames.length > 0
-  const allSelected = rows.length > 0 && selectedNames.length === rows.length
+  const hasSelection = selectedIds.length > 0
+  const allSelected = rows.length > 0 && selectedIds.length === rows.length
 
   function toggleSelectAll() {
     if (allSelected) {
-      setSelectedNames([])
+      setSelectedIds([])
     } else {
-      setSelectedNames(rows.map((row) => row.name))
+      setSelectedIds(rows.map((row) => row.id))
     }
   }
+
+  useEffect(() => {
+    if (rows.length === 0) {
+      setSelectedIds([])
+      return
+    }
+    setSelectedIds((prev) =>
+      prev.filter((id) => rows.some((row) => row.id === id)),
+    )
+  }, [rows])
 
   return (
     <>
@@ -102,6 +117,7 @@ export function AccountUsageTable({
                   aria-label="เลือกทั้งหมด"
                   checked={allSelected}
                   onChange={toggleSelectAll}
+                  disabled={deleteDisabled}
                 />
               </TableHead>
             )}
@@ -118,14 +134,15 @@ export function AccountUsageTable({
         </TableHeader>
         <TableBody>
           {paginatedRows.map((row) => (
-            <TableRow key={row.name} className="even:bg-slate-50/60">
+            <TableRow key={row.id} className="even:bg-slate-50/60">
               {selectable && (
                 <TableCell className="w-10 px-4 py-3 text-center text-sm text-slate-700">
                   <input
                     type="checkbox"
                     aria-label={`เลือก ${row.name}`}
-                    checked={selectedNames.includes(row.name)}
-                    onChange={() => toggleSelect(row.name)}
+                    checked={selectedIds.includes(row.id)}
+                    onChange={() => toggleSelect(row.id)}
+                    disabled={deleteDisabled}
                   />
                 </TableCell>
               )}
@@ -143,7 +160,7 @@ export function AccountUsageTable({
           {paginatedRows.length === 0 && (
             <TableRow>
               <TableCell
-                colSpan={selectable ? 4 : 3}
+                colSpan={columnCount}
                 className="py-10 text-center text-sm text-slate-500"
               >
                 <div className="flex flex-col items-center gap-2">
@@ -162,10 +179,10 @@ export function AccountUsageTable({
           <button
             type="button"
             onClick={deleteSelected}
-            disabled={!hasSelection}
+            disabled={!hasSelection || deleteDisabled}
             className="rounded-md border border-orange-400 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-200 disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
           >
-            ลบรายการที่เลือก ({selectedNames.length})
+            ลบรายการที่เลือก ({selectedIds.length})
           </button>
         )}
         <div className="flex flex-1 items-center justify-center gap-3">
