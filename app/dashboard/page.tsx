@@ -2,9 +2,10 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
+import Swal from "sweetalert2"
 
 import { apiFetch } from "@/lib/apiClient"
 
@@ -25,9 +26,111 @@ import {
 import { AccountUsageTable } from "@/components/account-usage-table"
 
 type AccountRow = {
+  id: number
   name: string
   profiles: number
   rows: number
+}
+// แปลงวันที่เป็นจุดเริ่มต้นของวัน (00:00:00.000 UTC)
+function startOfDay(date: Date) {
+  return new Date(
+    Date.UTC(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      0,
+      0,
+      0,
+      0,
+    ),
+  )
+}
+// แปลงวันที่เป็นจุดสิ้นสุดของวัน (23:59:59.999 UTC)
+function endOfDay(date: Date) {
+  return new Date(
+    Date.UTC(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      23,
+      59,
+      59,
+      999,
+    ),
+  )
+}
+// แปลงวันที่เป็นรูปแบบพารามิเตอร์วันที่ในรูปแบบ UTC (เช่น 2024-01-01)
+function formatUtcDateParam(date: Date) {
+  return new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  )
+    .toISOString()
+    .slice(0, 10)
+}
+// แปลงวันที่เป็นรูปแบบวันที่สั้นของไทย (เช่น 1 ม.ค. 2567)
+function formatThaiShortDate(date: Date) {
+  return `${date.getDate()} ${date.toLocaleDateString("th-TH-u-ca-buddhist", {
+    month: "short",
+  })} ${date.getFullYear() + 543}`
+}
+// แยกวิเคราะห์ค่าวันที่จากข้อมูลที่ไม่แน่นอน
+function parseDateValue(value: unknown): Date | null {
+  if (!value) return null
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value
+  }
+  if (typeof value === "number") {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const date = new Date(trimmed)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  return null
+}
+// แปลงวันที่เป็นเวลา UTC ที่เริ่มต้นของวัน
+function toUtcDateOnly(date: Date) {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  )
+}
+// ดึงช่วงวันที่จากข้อมูลสรุปและรายการย่อย
+function extractLogDateRange(
+  data: Record<string, unknown> | null,
+  items: Array<Record<string, unknown>>,
+) {
+  const candidates: Date[] = []
+  const dataFields = ["globalMinDate","globalMaxDate"]
+  if (data) {
+    dataFields.forEach((field) => {
+      const date = parseDateValue(data[field])
+      if (date) candidates.push(date)
+    })
+  }
+// ดึงวันที่จากแต่ละรายการย่อย
+  const itemFields = ["minLogDate","maxLogDate"]
+
+  items.forEach((item) => {
+    itemFields.forEach((field) => {
+      const date = parseDateValue(item[field])
+      if (date) candidates.push(date)
+    })
+  })
+
+  if (candidates.length === 0) return null
+
+  const times = candidates.map((date) => date.getTime())
+  const minTime = Math.min(...times)
+  const maxTime = Math.max(...times)
+  if (!Number.isFinite(minTime) || !Number.isFinite(maxTime)) return null
+
+  return {
+    start: toUtcDateOnly(new Date(minTime)),
+    end: toUtcDateOnly(new Date(maxTime)),
+  }
 }
 
 // หน้า Dashboard หลัก (ปริมาณข้อมูลในระบบ)
@@ -53,78 +156,180 @@ export default function Page() {
   const [toDate, setToDate] = useState<Date | undefined>(defaultRange.to)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // ดึงข้อมูลการใช้ยาตามช่วงวันที่จาก API เมื่อตัวกรองวันที่เปลี่ยน
-  useEffect(() => {
-    async function fetchUsage() {
-      try {
-        setIsLoading(true)
-        setLoadError(null)
+  const fetchUsage = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setLoadError(null)
 
-        const params = new URLSearchParams()
-        if (fromDate) params.set("fromDate", fromDate.toISOString().slice(0, 10))
-        if (toDate) params.set("toDate", toDate.toISOString().slice(0, 10))
+      const params = new URLSearchParams()
+      if (fromDate) params.set("fromDate", formatUtcDateParam(fromDate))
+      if (toDate) params.set("toDate", formatUtcDateParam(toDate))
 
-        const query = params.toString()
-        const url = query
-          ? `/api/admin/v1/dashboard/usage?${query}`
-          : "/api/admin/v1/dashboard/usage"
+      const query = params.toString()
+      const url = query
+        ? `/api/admin/v1/dashboard/usage?${query}`
+        : "/api/admin/v1/dashboard/usage"
 
 // อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
-        const accessToken =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem("accessToken")
-            : null
-// เตรียม headers สำหรับเรียก API
-        const headers: Record<string, string> = {}
-        if (accessToken) {
-          headers.Authorization = `Bearer ${accessToken}`
-        }
-// เรียก API เพื่อดึงข้อมูลการใช้ยา
-        const res = await apiFetch(url, {
-          headers,
-        })
-        const data = await res.json().catch(() => null)
-// ตรวจสอบผลลัพธ์การดึงข้อมูล
-        if (!res.ok) {
-          setLoadError(
-            (data && (data.error as string | undefined)) ||
-              "โหลดข้อมูลปริมาณการใช้ยาไม่สำเร็จ",
-          )
-          setRows([])
-          return
-        }
-// แปลงข้อมูลที่ได้มาเป็นรูปแบบตาราง
-        const items = (data?.items ?? []) as {
-          accountId: number
-          accountLabel: string
-          patientCount: number
-          medicationLogCount: number
-        }[]
-
-        const nextRows: AccountRow[] = items.map((item) => ({
-          name: item.accountLabel,
-          profiles: item.patientCount,
-          rows: item.medicationLogCount,
-        }))
-
-        setRows(nextRows)
-      } catch {
-        setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลปริมาณการใช้ยา")
-        setRows([])
-      } finally {
-        setIsLoading(false)
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
       }
-    }
+      const res = await apiFetch(url, {
+        headers,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "โหลดข้อมูลปริมาณการใช้ยาไม่สำเร็จ",
+        )
+        setRows([])
+        return
+      }
+      // แปลงข้อมูลจาก API เป็นรูปแบบที่ตารางต้องการ
+      const items = (data?.items ?? []) as Array<Record<string, unknown>>
 
-    fetchUsage()
+      const nextRows = items
+        .map((item) => {
+          const rawId =
+            (item.accountId as number | string | undefined) ??
+            (item.account_id as number | string | undefined) ??
+            (item.userId as number | string | undefined) ??
+            (item.user_id as number | string | undefined)
+          const parsedId =
+            typeof rawId === "string" ? Number(rawId) : rawId
+
+          if (!Number.isFinite(parsedId)) {
+            return null
+          }
+
+          return {
+            id: Number(parsedId),
+            name: String(item.accountLabel ?? item.account_name ?? item.name ?? "-"),
+            profiles: Number(item.patientCount ?? item.patient_count ?? 0),
+            rows: Number(item.medicationLogCount ?? item.medication_log_count ?? 0),
+          } satisfies AccountRow
+        })
+        .filter((row): row is AccountRow => row !== null)
+
+      setRows(nextRows)
+
+      if (
+        !fromDateInput &&
+        !toDateInput &&
+        !fromDate &&
+        !toDate
+      ) {
+        const range = extractLogDateRange(
+          (data ?? null) as Record<string, unknown> | null,
+          items,
+        )
+        if (range) {
+          setFromDate(range.start)
+          setFromDateInput(range.start)
+          setToDate(range.end)
+          setToDateInput(range.end)
+        }
+      }
+    } catch {
+      setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลปริมาณการใช้ยา")
+      setRows([])
+    } finally {
+      setIsLoading(false)
+    }
   }, [fromDate, toDate])
 
-  // ลบแถวที่ถูกเลือกออกจาก state (ฝั่ง UI เท่านั้น ไม่เรียก API ลบจริง)
-  function handleDeleteSelected(names: string[]) {
-    setRows((current) =>
-      current.filter((row) => !names.includes(row.name)),
-    )
+  useEffect(() => {
+    fetchUsage()
+  }, [fetchUsage])
+
+  async function deleteLogs(userIds: number[]) {
+    const filteredIds = userIds.filter((id) => Number.isFinite(id))
+    if (filteredIds.length === 0) {
+      setLoadError("ไม่พบรหัสบัญชีที่ถูกต้องสำหรับการลบ")
+      return
+    }
+
+    const start = fromDateInput ?? fromDate
+    const end = toDateInput ?? toDate ?? start
+
+    if (!start || !end) {
+      setLoadError("กรุณาเลือกช่วงวันที่ก่อนลบ")
+      return
+    }
+
+    try {
+      const countLabel =
+        filteredIds.length === 1
+          ? "1 บัญชี"
+          : `${filteredIds.length} บัญชี`
+      const rangeLabel = `${formatThaiShortDate(start)} - ${formatThaiShortDate(end)}`
+      const confirmResult = await Swal.fire({
+        title: "ยืนยันการลบ",
+        html: `ต้องการลบข้อมูลการใช้ยา ${countLabel}<br/>ช่วงวันที่ ${rangeLabel} หรือไม่?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "ยืนยันลบ",
+        cancelButtonText: "ยกเลิก",
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#94a3b8",
+      })
+
+      if (!confirmResult.isConfirmed) {
+        return
+      }
+
+      setIsDeleting(true)
+      setLoadError(null)
+
+      const accessToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
+
+      const res = await apiFetch("/api/admin/v1/user/delete-log", {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify({
+          userIds: filteredIds,
+          startDate: startOfDay(start).toISOString(),
+          endDate: endOfDay(end).toISOString(),
+        }),
+      })
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setLoadError(
+          (data && (data.error as string | undefined)) ||
+            "ลบข้อมูลไม่สำเร็จ",
+        )
+        return
+      }
+
+      await fetchUsage()
+    } catch {
+      setLoadError("เกิดข้อผิดพลาดในการลบข้อมูล")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  function handleDeleteSelected(ids: number[]) {
+    void deleteLogs(ids)
   }
 
   return (
@@ -235,6 +440,7 @@ export default function Page() {
                 rows={rows}
                 selectable
                 onDeleteSelected={handleDeleteSelected}
+                deleteDisabled={isDeleting || isLoading}
               />
             </section>
           </div>
