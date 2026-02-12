@@ -3,6 +3,8 @@
 import type { CSSProperties } from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+
+import { Eye, EyeOff } from "lucide-react"
 import { useAlert } from "@/components/ui/alert-modal"
 
 import { apiFetch } from "@/lib/apiClient"
@@ -19,6 +21,7 @@ import {
   Field,
   FieldDescription,
   FieldGroup,
+  FieldTitle,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -35,6 +38,8 @@ export default function NewAdminPage() {
   const [status, setStatus] = useState<"active" | "inactive">("active")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -174,42 +179,91 @@ export default function NewAdminPage() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <FieldGroup className="gap-4">
                     <Field>
+                      <FieldTitle className="text-xs text-slate-600">
+                        อีเมล
+                      </FieldTitle>
                       <Input
                         id="admin-email"
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="Email"
+                        placeholder="กรอกอีเมล"
                         required
                         disabled={isLoading}
                         className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
                       />
                     </Field>
                     <Field>
-                      <Input
-                        id="admin-password"
-                        type="password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Password"
-                        required
-                        disabled={isLoading}
-                        className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
-                      />
+                      <FieldTitle className="text-xs text-slate-600">
+                        รหัสผ่าน
+                      </FieldTitle>
+                      <div className="relative">
+                        <Input
+                          id="admin-password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          placeholder="กรอกรหัสผ่าน"
+                          required
+                          disabled={isLoading}
+                          className="h-11 rounded-full border-none bg-slate-200/80 px-4 pr-11 text-sm text-slate-800 placeholder:text-slate-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          disabled={isLoading}
+                          aria-label={
+                            showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"
+                          }
+                          aria-pressed={showPassword}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-700 disabled:opacity-50"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </Field>
                     <Field>
-                      <Input
-                        id="admin-confirm-password"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(event) =>
-                          setConfirmPassword(event.target.value)
-                        }
-                        placeholder="Confirm Password"
-                        required
-                        disabled={isLoading}
-                        className="h-11 rounded-full border-none bg-slate-200/80 px-4 text-sm text-slate-800 placeholder:text-slate-400"
-                      />
+                      <FieldTitle className="text-xs text-slate-600">
+                        ยืนยันรหัสผ่าน
+                      </FieldTitle>
+                      <div className="relative">
+                        <Input
+                          id="admin-confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(event) =>
+                            setConfirmPassword(event.target.value)
+                          }
+                          placeholder="ยืนยันรหัสผ่านอีกครั้ง"
+                          required
+                          disabled={isLoading}
+                          className="h-11 rounded-full border-none bg-slate-200/80 px-4 pr-11 text-sm text-slate-800 placeholder:text-slate-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword((prev) => !prev)
+                          }
+                          disabled={isLoading}
+                          aria-label={
+                            showConfirmPassword
+                              ? "ซ่อนรหัสผ่าน"
+                              : "แสดงรหัสผ่าน"
+                          }
+                          aria-pressed={showConfirmPassword}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-700 disabled:opacity-50"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                       <FieldDescription className="mt-1 text-center text-[11px] text-slate-500">
                         รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร
                       </FieldDescription>
@@ -234,7 +288,9 @@ export default function NewAdminPage() {
                           }`}
                           aria-pressed={status === "active"}
                         >
-                          <span>{status === "active" ? "ON" : "OFF"}</span>
+                          <span>
+                            {status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                          </span>
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
                             <span
                               className={`h-3 w-3 rounded-full ${

@@ -104,7 +104,7 @@ export default function AccountsPage() {
   
 // เรียก API เพื่อดึงรายการบัญชีผู้ใช้งาน
         const res = await apiFetch("/api/admin/v1/users/list", { headers })
-  
+
         const data = await res.json().catch(() => null)
   
         if (!res.ok) {
@@ -201,7 +201,7 @@ export default function AccountsPage() {
     setCurrentPage(page)
   }
 
-  // สลับสถานะ active/ inactive ใน UI (ยังไม่ผูกกับ API)
+  // สลับสถานะ active/ inactive ผ่าน API และอัปเดต UI
   async function handleToggleStatus(userId: number) {
     // หา account ที่ต้องการเปลี่ยนสถานะ
     const target = accounts.find((account) => account.userId === userId)
@@ -253,7 +253,7 @@ export default function AccountsPage() {
       const res = await apiFetch(`/api/admin/v1/users/${userId}`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ active: nextStatus }),
       })
 
       const data = await res.json().catch(() => null)
