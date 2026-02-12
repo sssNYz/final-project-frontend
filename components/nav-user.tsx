@@ -94,7 +94,7 @@ export function NavUser({
               className="group cursor-pointer bg-transparent text-red-600 focus:bg-transparent focus:outline-none data-[highlighted]:bg-transparent data-[highlighted]:text-red-600"
             >
               <IconLogout className="mr-1 transition-colors group-hover:text-red-700" />
-              Logout
+              ออกจากระบบ
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

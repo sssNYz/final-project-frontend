@@ -156,7 +156,7 @@ export function LoginForm({
                   disabled={isLoading}
                   className="mt-2 w-full rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600"
                 >
-                  {isLoading ? "Logging in..." : "Log In"}
+                  {isLoading ? "Logging in..." : "เข้าสู่ระบบ"}
                 </Button>
               </Field>
             </FieldGroup>
