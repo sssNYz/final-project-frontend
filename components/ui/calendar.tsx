@@ -33,6 +33,7 @@ export function Calendar({
   ...props
 }: CalendarProps) {
   const [mounted, setMounted] = React.useState(false)
+  const mode = props.mode ?? "single"
 
   React.useEffect(() => {
     setMounted(true)
@@ -41,6 +42,38 @@ export function Calendar({
   // หลีกเลี่ยง hydration mismatch จากการเรนเดอร์ปฏิทินที่ใช้ Date/Intl บนฝั่งเซิร์ฟเวอร์
   if (!mounted) {
     return null
+  }
+
+  const handleClear = () => {
+    if (!props.onSelect) return
+    if (mode === "range") {
+      ;(props.onSelect as (value: { from?: Date; to?: Date } | undefined) => void)(
+        undefined,
+      )
+      return
+    }
+    if (mode === "multiple") {
+      ;(props.onSelect as (value: Date[] | undefined) => void)([])
+      return
+    }
+    ;(props.onSelect as (value: Date | undefined) => void)(undefined)
+  }
+
+  const handleToday = () => {
+    if (!props.onSelect) return
+    const today = new Date()
+    if (mode === "range") {
+      ;(props.onSelect as (value: { from?: Date; to?: Date } | undefined) => void)({
+        from: today,
+        to: today,
+      })
+      return
+    }
+    if (mode === "multiple") {
+      ;(props.onSelect as (value: Date[] | undefined) => void)([today])
+      return
+    }
+    ;(props.onSelect as (value: Date | undefined) => void)(today)
   }
 
   return (
@@ -69,6 +102,24 @@ export function Calendar({
           "text-muted-foreground opacity-40 line-through cursor-not-allowed",
         ...classNames,
       }}
+      footer={
+        <div className="mt-3 flex items-center justify-between px-1 text-[11px] text-slate-600">
+          <button
+            type="button"
+            onClick={handleClear}
+            className="rounded-full px-2 py-1 transition hover:bg-slate-100"
+          >
+            ล้างค่า
+          </button>
+          <button
+            type="button"
+            onClick={handleToday}
+            className="rounded-full px-2 py-1 font-semibold text-sky-700 transition hover:bg-slate-100"
+          >
+            วันนี้
+          </button>
+        </div>
+      }
       formatters={{
         formatCaption: (month) => {
           const year = month.getFullYear()
