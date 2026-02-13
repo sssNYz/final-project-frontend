@@ -1,16 +1,14 @@
 ﻿"use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 
 import {
   Calendar as CalendarIcon,
   Clock,
   ExternalLink,
-  FileText,
   Image as ImageIcon,
-  X,
 } from "lucide-react"
 
 import { AppSidebar } from "@/components/app-sidebar"
@@ -88,7 +86,7 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
   OTHER: "อื่นๆ",
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 const initialRequests: RequestRow[] = []
 
@@ -230,10 +228,7 @@ export default function RequestsPage() {
   const [toDateInput, setToDateInput] =
     useState<Date | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(1)
-  const [activeRequest, setActiveRequest] =
-    useState<RequestRow | null>(null)
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
-  const openedRequestIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     async function fetchRequests() {
@@ -352,19 +347,15 @@ export default function RequestsPage() {
     return value ? value.trim() : ""
   }, [searchParams])
 
-  // ถ้ามี requestId ใน URL ให้เปิดรายละเอียดครั้งแรก (รองรับเปิดในแท็บใหม่)
-  useEffect(() => {
-    if (!requestIdFromQuery || requests.length === 0) return
-    if (openedRequestIdRef.current === requestIdFromQuery) return
-
-    const matched = requests.find(
-      (request) => request.id === requestIdFromQuery,
+  const detailRequest = useMemo(() => {
+    if (!requestIdFromQuery) return null
+    return (
+      requests.find((request) => request.id === requestIdFromQuery) ??
+      null
     )
-    if (matched) {
-      openedRequestIdRef.current = requestIdFromQuery
-      setActiveRequest(matched)
-    }
   }, [requestIdFromQuery, requests])
+
+  const isDetailView = Boolean(requestIdFromQuery)
 
   // ตั้งค่า default ให้ช่วงวันที่เป็นวันที่เก่าที่สุดและใหม่ที่สุดจากรายการคำร้อง
   useEffect(() => {
@@ -531,22 +522,11 @@ export default function RequestsPage() {
     }
   }
 
-  function openRequestDetail(request: RequestRow) {
-    setActiveRequest(request)
-  }
-
-  function closeRequestDetail() {
-    setActiveRequest(null)
-  }
-
   async function resolveFromDetail(
     status: Exclude<RequestStatus, "PENDING">,
   ) {
-    if (!activeRequest) return
-    const ok = await updateStatus(activeRequest.id, status)
-    if (ok) {
-      setActiveRequest(null)
-    }
+    if (!detailRequest) return
+    await updateStatus(detailRequest.id, status)
   }
 
   return (
@@ -562,8 +542,154 @@ export default function RequestsPage() {
       <SidebarInset>
         <SiteHeader />
         <main className="flex flex-1 flex-col bg-background">
-          <DashboardPageHeader title="รายการคำร้องจากผู้ใช้" />
-          <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+          <DashboardPageHeader
+            title={
+              isDetailView
+                ? "รายละเอียดคำร้อง"
+                : "รายการคำร้องจากผู้ใช้"
+            }
+          />
+          {isDetailView ? (
+            <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <a
+                  href="/requests"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  กลับหน้ารายการ
+                </a>
+                {requestIdFromQuery && (
+                  <span className="text-xs text-slate-500">
+                    รหัสคำร้อง: {requestIdFromQuery}
+                  </span>
+                )}
+              </div>
+
+              {loadError && (
+                <p className="text-sm text-red-500">{loadError}</p>
+              )}
+
+              {isLoading && !detailRequest && (
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+                  <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                  <div className="mt-4 h-20 w-full animate-pulse rounded bg-slate-100" />
+                </div>
+              )}
+
+              {detailRequest ? (
+                <div className="flex justify-center">
+                  <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="mb-4 flex justify-center">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold ${STATUS_BADGE_CLASSES[detailRequest.status]}`}
+                      >
+                        STATUS :{" "}
+                        <span className="ml-1">
+                          {STATUS_LABELS[detailRequest.status]}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="space-y-3 bg-slate-50/80 p-4 text-xs">
+                      <div className="space-y-2">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <div className="font-semibold">
+                              อีเมลผู้ส่งคำร้อง
+                            </div>
+                            <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                              {detailRequest.email}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="font-semibold">
+                              วันที่ส่งคำร้อง
+                            </div>
+                            <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                              {formatDisplayDate(detailRequest.submittedDate)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <div className="font-semibold">ชื่อหัวข้อ</div>
+                            <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                              {detailRequest.subject || "-"}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="font-semibold">
+                              หมวดหมู่คำร้อง
+                            </div>
+                            <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                              {CATEGORY_LABELS[detailRequest.category]}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="font-semibold">เนื้อหาคำร้อง</div>
+                          <div className="bg-white px-4 py-3 text-[11px] text-slate-800 shadow-sm">
+                            {detailRequest.content || "-"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex h-40 items-center justify-center rounded-xl bg-white">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedImage(
+                              detailRequest.imageUrl &&
+                                detailRequest.imageUrl.length > 0
+                                ? detailRequest.imageUrl
+                                : "/medicine-placeholder.svg",
+                            )
+                          }
+                          className="flex h-full w-full cursor-zoom-in items-center justify-center"
+                          aria-label="ขยายรูปคำร้อง"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              detailRequest.imageUrl &&
+                              detailRequest.imageUrl.length > 0
+                                ? detailRequest.imageUrl
+                                : "/medicine-placeholder.svg"
+                            }
+                            alt="รูปประกอบคำร้อง"
+                            className="h-full w-full max-w-[200px] object-contain"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    {detailRequest.status === "PENDING" && (
+                      <div className="mt-6 flex items-center justify-between gap-4">
+                        <Button
+                          type="button"
+                          onClick={() => resolveFromDetail("REJECTED")}
+                          className="flex-1 rounded-full bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
+                        >
+                          ปฏิเสธ
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => resolveFromDetail("DONE")}
+                          className="flex-1 rounded-full bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
+                        >
+                          ดำเนินการแล้ว
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                !isLoading && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
+                    ไม่พบรายละเอียดคำร้องที่ต้องการ
+                  </div>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col gap-4 px-4 py-6 lg:px-6">
             <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
               <div className="mt-3 flex w-full flex-wrap items-end gap-4">
                 <div className="flex min-w-[320px] flex-1 flex-col gap-1">
@@ -894,22 +1020,14 @@ export default function RequestsPage() {
                           </TableCell>
                           <TableCell className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openRequestDetail(request)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
-                                aria-label="ดูรายละเอียดคำร้อง"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </button>
                               <a
                                 href={`/requests?requestId=${encodeURIComponent(
                                   request.id,
                                 )}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                aria-label="เปิดคำร้องในแท็บใหม่"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 shadow-sm transition hover:bg-slate-800"
+                                aria-label="เปิดรายละเอียดในแท็บใหม่"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </a>
@@ -981,134 +1099,8 @@ export default function RequestsPage() {
                 </div>
               </div>
             </section>
-
-            {activeRequest && (
-              <div
-                className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-4"
-                onClick={closeRequestDetail}
-                role="presentation"
-              >
-                <div
-                  className="relative w-full max-w-[720px] max-h-[90vh] overflow-y-auto rounded-3xl bg-gradient-to-br from-sky-900 via-sky-700 to-slate-700 p-6 text-white shadow-2xl"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onClick={closeRequestDetail}
-                    className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow hover:bg-orange-600"
-                    aria-label="ปิดหน้ารายละเอียดคำร้อง"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <h2 className="mt-2 text-center text-lg font-semibold">
-                    คำร้องจากผู้ใช้
-                  </h2>
-                  <div className="mb-4 mt-2 flex justify-center">
-                    <span
-                      className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold ${STATUS_BADGE_CLASSES[activeRequest.status]}`}
-                    >
-                      STATUS :{" "}
-                      <span className="ml-1">
-                        {STATUS_LABELS[activeRequest.status]}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="space-y-3 bg-white/5 p-4 text-xs">
-                    <div className="space-y-2">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <div className="font-semibold">
-                            อีเมลผู้ส่งคำร้อง
-                          </div>
-                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                            {activeRequest.email}
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-semibold">
-                            วันที่ส่งคำร้อง
-                          </div>
-                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                            {formatDisplayDate(activeRequest.submittedDate)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <div className="font-semibold">ชื่อหัวข้อ</div>
-                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                            {activeRequest.subject}
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-semibold">
-                            หมวดหมู่คำร้อง
-                          </div>
-                          <div className="bg-white/90 px-4 py-2 text-[11px] font-medium text-slate-800">
-                            {CATEGORY_LABELS[activeRequest.category]}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="font-semibold">
-                          เนื้อหาคำร้อง
-                        </div>
-                        <div className="bg-white/90 px-4 py-3 text-[11px] text-slate-800">
-                          {activeRequest.content}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex h-40 items-center justify-center bg-white">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedImage(
-                            activeRequest.imageUrl &&
-                              activeRequest.imageUrl.length > 0
-                              ? activeRequest.imageUrl
-                              : "/medicine-placeholder.svg",
-                          )
-                        }
-                        className="flex h-full w-full cursor-zoom-in items-center justify-center"
-                        aria-label="ขยายรูปคำร้อง"
-                      >
-                        {/* ถ้ามีรูปแนบมากับคำร้อง ใช้รูปนั้น ถ้าไม่มีก็ใช้รูปยาตัวอย่าง */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={
-                            activeRequest.imageUrl &&
-                            activeRequest.imageUrl.length > 0
-                              ? activeRequest.imageUrl
-                              : "/medicine-placeholder.svg"
-                          }
-                          alt="รูปยาประกอบคำร้อง"
-                          className="h-full w-full max-w-[200px] object-contain"
-                        />
-                      </button>
-                    </div>
-                    </div>
-                    {activeRequest.status === "PENDING" && (
-                      <div className="mt-6 flex items-center justify-between gap-4">
-                        <Button
-                          type="button"
-                          onClick={() => resolveFromDetail("REJECTED")}
-                          className="flex-1 rounded-none bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
-                        >
-                          ปฏิเสธ
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => resolveFromDetail("DONE")}
-                          className="flex-1 rounded-none bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
-                        >
-                          ดำเนินการแล้ว
-                        </Button>
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
           </div>
+          )}
         </main>
       </SidebarInset>
 

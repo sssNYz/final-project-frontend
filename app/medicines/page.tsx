@@ -76,7 +76,7 @@ const USAGE_LABELS: Record<UsageType, string> = {
   topical: "ยาใช้ภายนอก",
 }
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 type FormState = {
   genericNameTh: string
