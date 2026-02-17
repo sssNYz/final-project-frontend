@@ -32,14 +32,6 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -47,11 +39,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 type UsageType = "oral" | "topical"
 
@@ -76,7 +63,7 @@ const USAGE_LABELS: Record<UsageType, string> = {
   topical: "ยาใช้ภายนอก",
 }
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 8
 
 type FormState = {
   genericNameTh: string
@@ -1346,7 +1333,7 @@ export default function MedicinesPage() {
             )}
 
             <section>
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 {isLoading ? (
                   <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
                 ) : (
@@ -1359,208 +1346,181 @@ export default function MedicinesPage() {
                   </div>
                 )}
               </div>
-              <Table className="border border-slate-200 rounded-xl bg-white">
-                <TableHeader>
-                  <TableRow className="bg-slate-700">
-                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      ชื่อสามัญยา
-                    </TableHead>
-                    <TableHead className="w-[220px] px-4 py-3 text-center text-xs font-semibold text-white">
-                      ชื่อการค้า
-                    </TableHead>
-                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      รูปแบบการใช้
-                    </TableHead>
-                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      สถานะการใช้งาน
-                    </TableHead>
-                    <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                      <span className="sr-only">จัดการ</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading
-                    ? Array.from({ length: PAGE_SIZE }, (_, index) => (
-                        <TableRow
-                          key={`medicine-skeleton-${index}`}
-                          className="even:bg-slate-50/70"
-                        >
-                          <TableCell className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200" />
-                              <div className="space-y-2">
-                                <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
-                                <div className="h-3 w-24 animate-pulse rounded bg-slate-200" />
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-[220px] px-4 py-3 text-center">
-                            <div className="mx-auto h-4 w-24 animate-pulse rounded bg-slate-200" />
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
-                            <div className="mx-auto h-4 w-20 animate-pulse rounded bg-slate-200" />
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
-                            <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-slate-200" />
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
-                            <div className="mx-auto h-8 w-8 animate-pulse rounded-full bg-slate-200" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : paginatedMedicines.map((medicine) => (
-                        <TableRow
-                          key={medicine.id}
-                          className="even:bg-slate-50/70"
-                        >
-                          <TableCell className="px-4 py-3 text-sm font-semibold text-slate-800">
-                            <div className="flex items-center gap-3">                           
-                              <div className="group relative"> 
-                                <div
-                                  onClick={() =>
-                                    setExpandedImage(
-                                      medicine.imageUrl ||
-                                        "/medicine-placeholder.svg",
-                                    )
-                                  }
-                                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md bg-slate-100 p-1"
-                                >
-                                {medicine.imageUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={medicine.imageUrl}
-                                    alt={medicine.genericNameEn}
-                                    className="h-full w-full object-contain"
-                                  />
-                                ) : (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src="/medicine-placeholder.svg"
-                                    alt="รูปยาตัวอย่าง"
-                                    className="h-full w-full object-contain"
-                                  />
-                                )}
-                                </div>
-                                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
-                                  <Search className="h-4 w-4 text-white" />
-                                </div>
-                              </div>
-                              <div>
-                                <div>{medicine.genericNameEn}</div>
-                                {medicine.genericNameTh && (
-                                  <div className="text-xs font-normal text-slate-600">
-                                    ({medicine.genericNameTh})
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="w-[220px] px-4 py-3 text-center text-sm text-slate-700">
-                            {medicine.brandName ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="block max-w-[200px] truncate text-center">
-                                    {medicine.brandName}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent
-                                  side="top"
-                                  className="max-w-xs text-xs"
-                                >
-                                  {medicine.brandName}
-                                </TooltipContent>
-                              </Tooltip>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                {isLoading ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: PAGE_SIZE }, (_, index) => (
+                      <div
+                        key={`medicine-skeleton-${index}`}
+                        className="flex h-full flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
+                      >
+                        <div className="h-36 w-full animate-pulse rounded-xl bg-slate-100" />
+                        <div className="mt-3 space-y-2">
+                          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+                          <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
+                          <div className="h-3 w-1/3 animate-pulse rounded bg-slate-200" />
+                        </div>
+                        <div className="mt-4 flex items-center justify-between">
+                          <div className="h-6 w-20 animate-pulse rounded-full bg-slate-200" />
+                          <div className="h-8 w-16 animate-pulse rounded-full bg-slate-200" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : paginatedMedicines.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {paginatedMedicines.map((medicine) => (
+                      <article
+                        key={medicine.id}
+                        className="group flex h-full flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedImage(
+                                medicine.imageUrl ||
+                                  "/medicine-placeholder.svg",
+                              )
+                            }
+                            className="flex h-36 w-full items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100"
+                            aria-label={`ดูรูปยา ${medicine.genericNameEn}`}
+                          >
+                            {medicine.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={medicine.imageUrl}
+                                alt={medicine.genericNameEn}
+                                className="h-full w-full object-contain"
+                              />
                             ) : (
-                              "-"
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src="/medicine-placeholder.svg"
+                                alt="รูปยาตัวอย่าง"
+                                className="h-full w-full object-contain"
+                              />
                             )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center text-sm text-slate-700">
-                            {USAGE_LABELS[medicine.usageType]}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-center">
+                          </button>
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Search className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              {USAGE_LABELS[medicine.usageType]}
+                            </span>
+                            {typeof medicine.status === "boolean" && (
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white ${
+                                  medicine.status
+                                    ? "bg-emerald-500"
+                                    : "bg-red-500"
+                                }`}
+                              >
+                                {medicine.status ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-sm font-semibold text-slate-800">
+                            {medicine.genericNameEn}
+                          </h3>
+                          {medicine.genericNameTh && (
+                            <p className="text-xs text-slate-500">
+                              {medicine.genericNameTh}
+                            </p>
+                          )}
+                          {medicine.brandName ? (
+                            <p
+                              className="text-xs text-slate-600"
+                              title={medicine.brandName}
+                            >
+                              {medicine.brandName}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-400">-</p>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(medicine.id)}
+                            disabled={
+                              typeof medicine.status !== "boolean" ||
+                              statusUpdating.has(medicine.id)
+                            }
+                            className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed ${
+                              typeof medicine.status !== "boolean"
+                                ? "border-slate-300 bg-slate-100 text-slate-400"
+                                : medicine.status
+                                  ? "border-emerald-500 bg-emerald-500 text-white"
+                                  : "border-red-500 bg-red-500 text-white"
+                            }`}
+                            aria-pressed={
+                              typeof medicine.status === "boolean"
+                                ? medicine.status
+                                : undefined
+                            }
+                          >
+                            <span>
+                              {typeof medicine.status === "boolean"
+                                ? medicine.status
+                                  ? "เปิดใช้งาน"
+                                  : "ปิดใช้งาน"
+                                : "--"}
+                            </span>
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
+                              <span
+                                className={`h-2.5 w-2.5 rounded-full ${
+                                  typeof medicine.status !== "boolean"
+                                    ? "bg-slate-300"
+                                    : medicine.status
+                                      ? "bg-emerald-500"
+                                      : "bg-red-500"
+                                }`}
+                              />
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => handleToggleStatus(medicine.id)}
-                              disabled={
-                                typeof medicine.status !== "boolean" ||
-                                statusUpdating.has(medicine.id)
+                              onClick={() =>
+                                handleDeleteMedicine(medicine.id)
                               }
-                              className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed ${
-                                typeof medicine.status !== "boolean"
-                                  ? "border-slate-300 bg-slate-100 text-slate-400"
-                                  : medicine.status
-                                    ? "border-emerald-500 bg-emerald-500 text-white"
-                                    : "border-red-500 bg-red-500 text-white"
-                              }`}
-                              aria-pressed={
-                                typeof medicine.status === "boolean"
-                                  ? medicine.status
-                                  : undefined
-                              }
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
+                              aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
                             >
-                              <span>
-                                {typeof medicine.status === "boolean"
-                                  ? medicine.status
-                                    ? "เปิดใช้งาน"
-                                    : "ปิดใช้งาน"
-                                  : "--"}
-                              </span>
-                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
-                                <span
-                                  className={`h-2.5 w-2.5 rounded-full ${
-                                    typeof medicine.status !== "boolean"
-                                      ? "bg-slate-300"
-                                      : medicine.status
-                                        ? "bg-emerald-500"
-                                        : "bg-red-500"
-                                  }`}
-                                />
-                              </span>
+                              <Trash2 className="h-4 w-4" />
                             </button>
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMedicine(medicine.id)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
-                                aria-label={`ลบข้อมูลยา ${medicine.genericNameEn}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => openViewDetails(medicine.id)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
-                                aria-label={`ดูรายละเอียดข้อมูลยา ${medicine.genericNameEn}`}
-                              >
-                                <FileText className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  {!isLoading && paginatedMedicines.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-10 text-center text-sm text-slate-500"
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <Pill className="h-8 w-8 text-slate-300" />
-                          <span>ไม่พบข้อมูล</span>
-                          <span className="text-xs text-slate-400">
-                            ไม่พบข้อมูลยาตามเงื่อนไขที่เลือก
-                          </span>
+                            <button
+                              type="button"
+                              onClick={() => openViewDetails(medicine.id)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 hover:bg-slate-800"
+                              aria-label={`ดูรายละเอียดข้อมูลยา ${medicine.genericNameEn}`}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
+                    <Pill className="h-8 w-8 text-slate-300" />
+                    <span>ไม่พบข้อมูล</span>
+                    <span className="text-xs text-slate-400">
+                      ไม่พบข้อมูลยาตามเงื่อนไขที่เลือก
+                    </span>
+                  </div>
+                )}
+              </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm font-medium text-slate-700">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm font-medium text-slate-700">
                 <div className="flex flex-1 items-center justify-center gap-2">
                   {totalPages > 1 && (
                     <button
