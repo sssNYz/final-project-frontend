@@ -219,9 +219,9 @@ export default function NewAdminPage() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-700 disabled:opacity-50"
                         >
                           {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
                             <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
                           )}
                         </button>
                       </div>
@@ -258,9 +258,9 @@ export default function NewAdminPage() {
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-700 disabled:opacity-50"
                         >
                           {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
                             <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
                           )}
                         </button>
                       </div>
