@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+// หน้ารีเซ็ตรหัสผ่าน (เดโมฝั่ง frontend ยังไม่เชื่อมระบบอีเมลจริง)
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [submitted, setSubmitted] = useState(false)
 
+  // จัดการ submit ฟอร์มรีเซ็ตรหัสผ่านอย่างง่าย
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!email) return
@@ -69,4 +71,3 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
-

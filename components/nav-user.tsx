@@ -1,15 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { apiFetch, clearAuthCache } from "@/lib/apiClient"
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,30 +34,20 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
-  const [currentEmail, setCurrentEmail] = useState<string | null>(null)
+  const [displayEmail, setDisplayEmail] = useState(user.email)
 
-  // อ่านอีเมลผู้ใช้ปัจจุบันจาก localStorage เพื่อแสดงชื่อ/อีเมลใน Sidebar
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const storedEmail = window.localStorage.getItem("currentUserEmail")
-    setCurrentEmail(storedEmail)
-  }, [])
-
-  const displayEmail = currentEmail ?? user.email
-  const displayName =
-    (displayEmail ? displayEmail.split("@")[0] : null) ?? user.name
   const avatarInitial =
-    displayName && displayName.length > 0
-      ? displayName[0]?.toUpperCase()
+    displayEmail && displayEmail.length > 0
+      ? displayEmail[0]?.toUpperCase()
       : "U"
 
-  // ลบ token และข้อมูลผู้ใช้ใน localStorage แล้วพากลับไปหน้า login
   function handleLogout() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("accessToken")
-      window.localStorage.removeItem("refreshToken")
-      window.localStorage.removeItem("currentUserEmail")
-    }
+    clearAuthCache()
+    void apiFetch("/api/auth/v2/logout", {
+      method: "POST",
+      skipAuth: true,
+      skipAuthRedirect: true,
+    })
     router.push("/")
   }
 
@@ -70,51 +58,33 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="cursor-pointer hover:bg-transparent hover:text-inherit active:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-inherit focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={displayName} />
-                <AvatarFallback className="rounded-lg">
+                <AvatarFallback className="rounded-lg text-slate-900">
                   {avatarInitial}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{displayName}</span>
-                <span className="text-muted-foreground truncate text-xs">
+              <div className="flex-1 text-left text-sm leading-tight text-white">
+                <span className="break-all text-sm font-medium">
                   {displayEmail}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <IconLogout className="ml-auto size-4 text-white/70 transition-colors hover:text-white" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            className="w-auto min-w-24 rounded-lg"
+            side="bottom"
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={displayName} />
-                  <AvatarFallback className="rounded-lg">
-                    {avatarInitial}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {displayName}
-                  </span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {displayEmail}
-                  </span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout}>
-              <IconLogout />
-              Logout
+            <DropdownMenuItem
+              onSelect={handleLogout}
+              className="group cursor-pointer bg-transparent text-red-600 focus:bg-transparent focus:outline-none data-[highlighted]:bg-transparent data-[highlighted]:text-red-600"
+            >
+              <IconLogout className="mr-1 transition-colors group-hover:text-red-700" />
+              ออกจากระบบ
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
