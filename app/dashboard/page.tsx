@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/rules-of-hooks */
+﻿﻿/* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 
 import type { CSSProperties } from "react"
@@ -155,14 +155,19 @@ export default function Page() {
   )
   const [toDate, setToDate] = useState<Date | undefined>(defaultRange.to)
   const [isLoading, setIsLoading] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const showError = async (message: string, title = "เกิดข้อผิดพลาด") => {
+    await Swal.fire({
+      icon: "error",
+      title,
+      text: message,
+    })
+  }
 
   // ดึงข้อมูลการใช้ยาตามช่วงวันที่จาก API เมื่อตัวกรองวันที่เปลี่ยน
   const fetchUsage = useCallback(async () => {
     try {
       setIsLoading(true)
-      setLoadError(null)
 
       const params = new URLSearchParams()
       if (fromDate) params.set("fromDate", formatUtcDateParam(fromDate))
@@ -179,10 +184,10 @@ export default function Page() {
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        setLoadError(
+        const message =
           (data && (data.error as string | undefined)) ||
-            "โหลดข้อมูลปริมาณการใช้ยาไม่สำเร็จ",
-        )
+          "โหลดข้อมูลปริมาณการใช้ยาไม่สำเร็จ"
+        await showError(message, "โหลดข้อมูลไม่สำเร็จ")
         setRows([])
         return
       }
@@ -232,7 +237,7 @@ export default function Page() {
         }
       }
     } catch {
-      setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลปริมาณการใช้ยา")
+      await showError("เกิดข้อผิดพลาดในการโหลดข้อมูลปริมาณการใช้ยา")
       setRows([])
     } finally {
       setIsLoading(false)
@@ -246,7 +251,7 @@ export default function Page() {
   async function deleteLogs(userIds: number[]) {
     const filteredIds = userIds.filter((id) => Number.isFinite(id))
     if (filteredIds.length === 0) {
-      setLoadError("ไม่พบรหัสบัญชีที่ถูกต้องสำหรับการลบ")
+      await showError("ไม่พบรหัสบัญชีที่ถูกต้องสำหรับการลบ")
       return
     }
 
@@ -254,7 +259,21 @@ export default function Page() {
     const end = toDateInput ?? toDate ?? start
 
     if (!start || !end) {
-      setLoadError("กรุณาเลือกช่วงวันที่ก่อนลบ")
+      await showError("กรุณาเลือกช่วงวันที่ก่อนลบ")
+      return
+    }
+
+    const selectedRows = rows.filter((row) => filteredIds.includes(row.id))
+    if (
+      selectedRows.length > 0 &&
+      selectedRows.every((row) => row.rows === 0)
+    ) {
+      const message = "ไม่มีข้อมูลประวัติการทานยาให้ลบ"
+      await Swal.fire({
+        icon: "info",
+        title: "ไม่มีข้อมูลให้ลบ",
+        text: message,
+      })
       return
     }
 
@@ -280,7 +299,6 @@ export default function Page() {
       }
 
       setIsDeleting(true)
-      setLoadError(null)
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -298,16 +316,32 @@ export default function Page() {
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setLoadError(
+        const message =
           (data && (data.error as string | undefined)) ||
-            "ลบข้อมูลไม่สำเร็จ",
-        )
+          "ลบข้อมูลไม่สำเร็จ"
+        await Swal.fire({
+          icon: "error",
+          title: "ลบข้อมูลไม่สำเร็จ",
+          text: message,
+        })
         return
       }
 
       await fetchUsage()
+      await Swal.fire({
+        icon: "success",
+        title: "ลบข้อมูลสำเร็จ",
+        text: "ลบประวัติการทานยาเรียบร้อยแล้ว",
+        showConfirmButton: false,
+        timer: 1600,
+      })
     } catch {
-      setLoadError("เกิดข้อผิดพลาดในการลบข้อมูล")
+      const message = "เกิดข้อผิดพลาดในการลบข้อมูล"
+      await Swal.fire({
+        icon: "error",
+        title: "ลบข้อมูลไม่สำเร็จ",
+        text: message,
+      })
     } finally {
       setIsDeleting(false)
     }
@@ -417,9 +451,6 @@ export default function Page() {
                 </div>
               </div>
             </div>
-            {loadError && (
-              <p className="text-xs text-red-500">{loadError}</p>
-            )}
             <section>
               <AccountUsageTable
                 rows={rows}
@@ -434,3 +465,8 @@ export default function Page() {
     </SidebarProvider>
   )
 }
+
+
+
+
+
