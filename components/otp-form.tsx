@@ -86,6 +86,13 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       if (refreshToken) {
         setRefreshToken(refreshToken)
       }
+      if (typeof window !== "undefined") {
+        const userEmail =
+          (data?.user?.email as string | undefined) ?? email
+        if (userEmail) {
+          window.sessionStorage.setItem("currentUserEmail", userEmail)
+        }
+      }
 // นำผู้ใช้ไปยังหน้า Dashboard หลังยืนยัน OTP สำเร็จ
       router.push("/dashboard")
     } catch (err) {

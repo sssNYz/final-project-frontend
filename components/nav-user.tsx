@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
@@ -36,6 +36,15 @@ export function NavUser({
   const router = useRouter()
   const [displayEmail, setDisplayEmail] = useState(user.email)
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const storedEmail = window.sessionStorage.getItem("currentUserEmail")
+    if (storedEmail) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDisplayEmail(storedEmail)
+    }
+  }, [])
+
   const avatarInitial =
     displayEmail && displayEmail.length > 0
       ? displayEmail[0]?.toUpperCase()
@@ -43,6 +52,9 @@ export function NavUser({
 
   function handleLogout() {
     clearAuthCache()
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("currentUserEmail")
+    }
     void apiFetch("/api/auth/v2/logout", {
       method: "POST",
       skipAuth: true,
