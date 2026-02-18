@@ -1370,17 +1370,6 @@ export default function MedicinesPage() {
                             <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                               {USAGE_LABELS[medicine.usageType]}
                             </span>
-                            {typeof medicine.status === "boolean" && (
-                              <span
-                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold text-white ${
-                                  medicine.status
-                                    ? "bg-emerald-500"
-                                    : "bg-red-500"
-                                }`}
-                              >
-                                {medicine.status ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                              </span>
-                            )}
                           </div>
                           <h3 className="text-sm font-semibold text-slate-800">
                             {medicine.genericNameEn}
