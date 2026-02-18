@@ -39,6 +39,17 @@ type ApiFetchOptions = RequestInit & {
   skipAuthRedirect?: boolean
 }
 
+let refreshTokenCache: string | null = null
+let refreshPromise: Promise<boolean> | null = null
+
+export function setRefreshToken(token?: string | null) {
+  refreshTokenCache = token ?? null
+}
+
+export function clearAuthCache() {
+  refreshTokenCache = null
+}
+
 function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
   if (!headers) return {}
   if (headers instanceof Headers) {
@@ -57,22 +68,53 @@ function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
   return { ...headers }
 }
 
-function hasAuthorizationHeader(headers: Record<string, string>): boolean {
-  return Object.keys(headers).some(
-    (key) => key.toLowerCase() === "authorization",
-  )
+async function refreshAccessToken(): Promise<boolean> {
+  if (typeof window === "undefined") return false
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    try {
+      const body = refreshTokenCache
+        ? JSON.stringify({ refreshToken: refreshTokenCache })
+        : null
+      const res = await fetch(apiUrl("/api/auth/v2/refresh"), {
+        method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ?? undefined,
+        credentials: "include",
+      })
+      if (!res.ok) return false
+
+      const data = await res.json().catch(() => null)
+      if (data?.refreshToken) {
+        refreshTokenCache = data.refreshToken as string
+      }
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
-function clearAuthStorage() {
-  if (typeof window === "undefined") return
-  window.localStorage.removeItem("accessToken")
-  window.localStorage.removeItem("refreshToken")
-  window.localStorage.removeItem("currentUserEmail")
+async function performLogout() {
+  try {
+    await fetch(apiUrl("/api/auth/v2/logout"), {
+      method: "POST",
+      credentials: "include",
+    })
+  } catch {
+    // Ignore logout errors; we still want to redirect.
+  }
 }
 
 export function handleUnauthorized() {
   if (typeof window === "undefined") return
-  clearAuthStorage()
+  clearAuthCache()
+  void performLogout()
   if (window.location.pathname !== "/") {
     window.location.href = "/"
   } else {
@@ -86,20 +128,31 @@ export async function apiFetch(
 ): Promise<Response> {
   const { skipAuth, skipAuthRedirect, headers, ...init } = options
   const normalizedHeaders = normalizeHeaders(headers)
+  const requestInit: RequestInit = {
+    ...init,
+    headers: normalizedHeaders,
+    credentials: init.credentials ?? "include",
+  }
 
-  if (!skipAuth && typeof window !== "undefined") {
-    const token = window.localStorage.getItem("accessToken")
-    if (token && !hasAuthorizationHeader(normalizedHeaders)) {
-      normalizedHeaders.Authorization = `Bearer ${token}`
+  const res = await fetch(apiUrl(path), requestInit)
+  const isUnauthorized = res.status === 401 || res.status === 403
+  const isRefreshEndpoint = path.includes("/api/auth/v2/refresh")
+
+  if (!skipAuth && isUnauthorized && !isRefreshEndpoint) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      const retryRes = await fetch(apiUrl(path), requestInit)
+      if (
+        !skipAuthRedirect &&
+        (retryRes.status === 401 || retryRes.status === 403)
+      ) {
+        handleUnauthorized()
+      }
+      return retryRes
     }
   }
 
-  const res = await fetch(apiUrl(path), {
-    ...init,
-    headers: normalizedHeaders,
-  })
-
-  if (!skipAuthRedirect && (res.status === 401 || res.status === 403)) {
+  if (!skipAuthRedirect && isUnauthorized) {
     handleUnauthorized()
   }
 

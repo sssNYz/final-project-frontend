@@ -91,19 +91,8 @@ export default function AccountsPage() {
         setIsLoading(true)
         setLoadError(null)
   
-// อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
-        const accessToken =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem("accessToken")
-            : null
-// เตรียม headers สำหรับเรียก API
-        const headers: Record<string, string> = {}
-        if (accessToken) {
-          headers.Authorization = `Bearer ${accessToken}`
-        }
-  
 // เรียก API เพื่อดึงรายการบัญชีผู้ใช้งาน
-        const res = await apiFetch("/api/admin/v1/users/list", { headers })
+        const res = await apiFetch("/api/admin/v1/users/list")
 
         const data = await res.json().catch(() => null)
   
@@ -208,23 +197,6 @@ export default function AccountsPage() {
     if (!target) return
     // ยืนยันการเปลี่ยนสถานะการใช้งาน
     const nextStatus = !target.active
-    if (typeof window !== "undefined" && nextStatus === false) {
-      const currentEmail = window.localStorage.getItem("currentUserEmail")
-      if (
-        currentEmail &&
-        currentEmail.trim().toLowerCase() ===
-          target.email.trim().toLowerCase()
-      ) {
-        await alert({
-          variant: "error",
-          title: "ไม่สามารถปิดบัญชีตัวเองได้",
-          message:
-            "คุณกำลังล็อกอินด้วยบัญชีนี้อยู่ จึงไม่สามารถปิดการใช้งานได้",
-          confirmText: "รับทราบ",
-        })
-        return
-      }
-    }
     const confirmed = await confirm({
       variant: "warning",
       title: "ยืนยันการเปลี่ยนสถานะการใช้งาน",
@@ -239,15 +211,8 @@ export default function AccountsPage() {
     setLoadError(null)
 
     try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-      }
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
       }
 // เรียก API เพื่ออัปเดตสถานะบัญชีผู้ใช้งาน
       const res = await apiFetch(`/api/admin/v1/users/${userId}`, {

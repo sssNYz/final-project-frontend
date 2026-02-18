@@ -1,9 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
+
+import { apiFetch, clearAuthCache } from "@/lib/apiClient"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -34,30 +36,18 @@ export function NavUser({
   const router = useRouter()
   const [displayEmail, setDisplayEmail] = useState(user.email)
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const storedEmail = window.localStorage.getItem("currentUserEmail")
-    if (storedEmail) {
-      // อ่านอีเมลจาก localStorage หลังจาก mount แล้วเท่านั้น
-      // เพื่อไม่ให้ค่า server / client แตกต่างกันตอน hydration
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDisplayEmail(storedEmail)
-    }
-  }, [])
-
   const avatarInitial =
     displayEmail && displayEmail.length > 0
       ? displayEmail[0]?.toUpperCase()
       : "U"
 
-  // ลบ token และข้อมูลผู้ใช้ใน localStorage แล้วพากลับไปหน้า login
   function handleLogout() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("accessToken")
-      window.localStorage.removeItem("refreshToken")
-      window.localStorage.removeItem("currentUserEmail")
-    }
+    clearAuthCache()
+    void apiFetch("/api/auth/v2/logout", {
+      method: "POST",
+      skipAuth: true,
+      skipAuthRedirect: true,
+    })
     router.push("/")
   }
 

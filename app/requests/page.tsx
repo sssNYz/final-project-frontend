@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type { CSSProperties } from "react"
 import { useEffect, useMemo, useState } from "react"
@@ -65,9 +65,9 @@ type RequestRow = {
 }
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
-  PENDING: "รอดำเนินการ",
-  REJECTED: "ปฏิเสธ",
-  DONE: "ดำเนินการแล้ว",
+  PENDING: "�ʹ��Թ���",
+  REJECTED: "����ʸ",
+  DONE: "���Թ�������",
 }
 
 const STATUS_BADGE_CLASSES: Record<RequestStatus, string> = {
@@ -79,11 +79,11 @@ const STATUS_BADGE_CLASSES: Record<RequestStatus, string> = {
 }
 
 const CATEGORY_LABELS: Record<RequestCategory, string> = {
-  PROBLEM: "ปัญหาการใช้งาน",
-  FUNCTION: "ฟังก์ชันการทำงาน",
-  NOTIFICATION: "การแจ้งเตือน",
-  ADD_MEDICINE: "คำร้องขอเพิ่มยา",
-  OTHER: "อื่นๆ",
+  PROBLEM: "�ѭ�ҡ����ҹ",
+  FUNCTION: "�ѧ��ѹ��÷ӧҹ",
+  NOTIFICATION: "�������͹",
+  ADD_MEDICINE: "����ͧ��������",
+  OTHER: "����",
 }
 
 const PAGE_SIZE = 5
@@ -157,49 +157,49 @@ function normalizeDate(value: unknown): string {
   return ""
 }
 
-// หน้า Dashboard > รายการคำร้องจากผู้ใช้
-// แสดงตารางรายการคำร้อง พร้อมตัวกรองและสถานะคำร้อง
+// ˹�� Dashboard > ��¡�ä���ͧ�ҡ�����
+// �ʴ����ҧ��¡�ä���ͧ �������ǡ�ͧ���ʶҹФ���ͧ
 function resolveImageUrl(value: unknown) {
   if (typeof value !== "string") return undefined
   const trimmed = value.trim()
-  if (!trimmed) return undefined // ถ้าเป็นค่าว่างให้คืนค่า undefined
-  if (/^https?:\/\//i.test(trimmed)) return trimmed   // ตรวจสอบว่าเป็น URL เต็มรูปแบบหรือไม่
-  const normalized = trimmed.replace(/^\/+/, "") // ลบ / ข้างหน้าออก
+  if (!trimmed) return undefined // ����繤����ҧ���׹��� undefined
+  if (/^https?:\/\//i.test(trimmed)) return trimmed   // ��Ǩ�ͺ����� URL ����ٻẺ�������
+  const normalized = trimmed.replace(/^\/+/, "") // ź / ��ҧ˹���͡
   return apiUrl(`/${normalized}`) 
 }
 
-// ฟอร์แมตวันที่เป็นรูปแบบวันที่ภาษาไทย
+// ��������ѹ������ٻẺ�ѹ���������
 function formatDisplayDate(isoDate: string) {
   const [yearStr, monthStr, dayStr] = isoDate.split("-")
   const year = Number(yearStr)
   const month = Number(monthStr)
   const day = Number(dayStr)
-  // ตรวจสอบความถูกต้องของวันที่
+  // ��Ǩ�ͺ�����١��ͧ�ͧ�ѹ���
 
   if (!year || !month || !day) return isoDate
   const thaiMonths = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม",
+    "���Ҥ�",
+    "����Ҿѹ��",
+    "�չҤ�",
+    "����¹",
+    "����Ҥ�",
+    "�Զع�¹",
+    "�á�Ҥ�",
+    "�ԧ�Ҥ�",
+    "�ѹ��¹",
+    "���Ҥ�",
+    "��Ȩԡ�¹",
+    "�ѹ�Ҥ�",
   ]
-// แปลงเดือนเป็นชื่อเดือน
+// �ŧ��͹�繪�����͹
   const monthName = thaiMonths[month - 1]
   if (!monthName) return isoDate
-// คำนวณปีพุทธศักราช
+// �ӹǳ�վط��ѡ�Ҫ
   const buddhistYear = year + 543
   return `${day} ${monthName} ${buddhistYear}`
 }
 
-// คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
+// ����๹����ѡ�ͧ˹����¡�ä���ͧ� Dashboard
 export default function RequestsPage() {
   const searchParams = useSearchParams()
   const [requests, setRequests] =
@@ -236,24 +236,13 @@ export default function RequestsPage() {
         setIsLoading(true)
         setLoadError(null)
 
-        const accessToken =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem("accessToken")
-            : null
-        const headers: Record<string, string> = {}
-        if (accessToken) {
-          headers.Authorization = `Bearer ${accessToken}`
-        }
-
-        const res = await apiFetch("/api/admin/v1/user-request/list", {
-          headers,
-        })
+        const res = await apiFetch("/api/admin/v1/user-request/list")
         const data = await res.json().catch(() => null)
 
         if (!res.ok) {
           setLoadError(
             (data && (data.error as string | undefined)) ||
-              "โหลดคำร้องไม่สำเร็จ",
+              "��Ŵ����ͧ��������",
           )
           return
         }
@@ -333,7 +322,7 @@ export default function RequestsPage() {
 
         setRequests(mapped)
       } catch {
-        setLoadError("เกิดข้อผิดพลาดในการโหลดคำร้อง")
+        setLoadError("�Դ��ͼԴ��Ҵ㹡����Ŵ����ͧ")
       } finally {
         setIsLoading(false)
       }
@@ -357,7 +346,7 @@ export default function RequestsPage() {
 
   const isDetailView = Boolean(requestIdFromQuery)
 
-  // ตั้งค่า default ให้ช่วงวันที่เป็นวันที่เก่าที่สุดและใหม่ที่สุดจากรายการคำร้อง
+  // ��駤�� default ����ǧ�ѹ������ѹ�����ҷ���ش����������ش�ҡ��¡�ä���ͧ
   useEffect(() => {
     if (!requests.length) return
     if (fromDateInput || toDateInput) return
@@ -380,7 +369,7 @@ export default function RequestsPage() {
     setToDateInput(maxDate)
   }, [requests, fromDateInput, toDateInput])
 
-  // ฟิลเตอร์หลักตามหมวดหมู่, อีเมล, และช่วงวันที่ (ยังไม่ใช้สถานะ)
+  // ���������ѡ�����Ǵ����, �����, ��Ъ�ǧ�ѹ��� (�ѧ�����ʶҹ�)
   const baseFilteredRequests = useMemo(() => {
     const search = searchEmail.trim().toLowerCase()
 
@@ -418,7 +407,7 @@ export default function RequestsPage() {
     })
   }, [requests, categoryFilter, searchEmail, fromDate, toDate])
 
-  // ฟิลเตอร์ตามสถานะเฉพาะสำหรับข้อมูลที่แสดงในตาราง
+  // ���������ʶҹ�੾������Ѻ�����ŷ���ʴ�㹵��ҧ
   const filteredRequests = useMemo(() => {
     if (statusFilter === "all") return baseFilteredRequests
     return baseFilteredRequests.filter(
@@ -435,8 +424,8 @@ export default function RequestsPage() {
     completedCount,
     totalCount,
   } = useMemo(() => {
-    // นับจำนวนคำร้องตามสถานะจากชุด baseFilteredRequests
-    // (ตัวเลขสรุปสถานะไม่ถูกเปลี่ยนตาม statusFilter)
+    // �Ѻ�ӹǹ����ͧ���ʶҹШҡ�ش baseFilteredRequests
+    // (����Ţ��ػʶҹ����١����¹��� statusFilter)
     const pending = baseFilteredRequests.filter(
       (item) => item.status === "PENDING",
     ).length
@@ -481,15 +470,8 @@ export default function RequestsPage() {
   async function updateStatus(id: string, status: RequestStatus) {
     setLoadError(null)
     try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-      }
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
       }
 
       const res = await apiFetch(
@@ -505,7 +487,7 @@ export default function RequestsPage() {
       if (!res.ok) {
         setLoadError(
           (data && (data.error as string | undefined)) ||
-            "อัปเดตสถานะไม่สำเร็จ",
+            "�ѻവʶҹ���������",
         )
         return false
       }
@@ -517,7 +499,7 @@ export default function RequestsPage() {
       )
       return true
     } catch {
-      setLoadError("เกิดข้อผิดพลาดในการอัปเดตสถานะ")
+      setLoadError("�Դ��ͼԴ��Ҵ㹡���ѻവʶҹ�")
       return false
     }
   }
@@ -545,8 +527,8 @@ export default function RequestsPage() {
           <DashboardPageHeader
             title={
               isDetailView
-                ? "รายละเอียดคำร้อง"
-                : "รายการคำร้องจากผู้ใช้"
+                ? "��������´����ͧ"
+                : "��¡�ä���ͧ�ҡ�����"
             }
           />
           {isDetailView ? (
@@ -556,11 +538,11 @@ export default function RequestsPage() {
                   href="/requests"
                   className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
                 >
-                  กลับหน้ารายการ
+                  ��Ѻ˹����¡��
                 </a>
                 {requestIdFromQuery && (
                   <span className="text-xs text-slate-500">
-                    รหัสคำร้อง: {requestIdFromQuery}
+                    ���ʤ���ͧ: {requestIdFromQuery}
                   </span>
                 )}
               </div>
@@ -594,7 +576,7 @@ export default function RequestsPage() {
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
                             <div className="font-semibold">
-                              อีเมลผู้ส่งคำร้อง
+                              ����ż���觤���ͧ
                             </div>
                             <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
                               {detailRequest.email}
@@ -602,7 +584,7 @@ export default function RequestsPage() {
                           </div>
                           <div className="space-y-1">
                             <div className="font-semibold">
-                              วันที่ส่งคำร้อง
+                              �ѹ����觤���ͧ
                             </div>
                             <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
                               {formatDisplayDate(detailRequest.submittedDate)}
@@ -611,14 +593,14 @@ export default function RequestsPage() {
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div className="space-y-1">
-                            <div className="font-semibold">ชื่อหัวข้อ</div>
+                            <div className="font-semibold">������Ǣ��</div>
                             <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
                               {detailRequest.subject || "-"}
                             </div>
                           </div>
                           <div className="space-y-1">
                             <div className="font-semibold">
-                              หมวดหมู่คำร้อง
+                              ��Ǵ�������ͧ
                             </div>
                             <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
                               {CATEGORY_LABELS[detailRequest.category]}
@@ -626,7 +608,7 @@ export default function RequestsPage() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <div className="font-semibold">เนื้อหาคำร้อง</div>
+                          <div className="font-semibold">�����Ҥ���ͧ</div>
                           <div className="bg-white px-4 py-3 text-[11px] text-slate-800 shadow-sm">
                             {detailRequest.content || "-"}
                           </div>
@@ -644,7 +626,7 @@ export default function RequestsPage() {
                             )
                           }
                           className="flex h-full w-full cursor-zoom-in items-center justify-center"
-                          aria-label="ขยายรูปคำร้อง"
+                          aria-label="�����ٻ����ͧ"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -654,7 +636,7 @@ export default function RequestsPage() {
                                 ? detailRequest.imageUrl
                                 : "/medicine-placeholder.svg"
                             }
-                            alt="รูปประกอบคำร้อง"
+                            alt="�ٻ��Сͺ����ͧ"
                             className="h-full w-full max-w-[200px] object-contain"
                           />
                         </button>
@@ -667,14 +649,14 @@ export default function RequestsPage() {
                           onClick={() => resolveFromDetail("REJECTED")}
                           className="flex-1 rounded-full bg-red-500 text-xs font-semibold text-white hover:bg-red-600"
                         >
-                          ปฏิเสธ
+                          ����ʸ
                         </Button>
                         <Button
                           type="button"
                           onClick={() => resolveFromDetail("DONE")}
                           className="flex-1 rounded-full bg-emerald-500 text-xs font-semibold text-white hover:bg-emerald-600"
                         >
-                          ดำเนินการแล้ว
+                          ���Թ�������
                         </Button>
                       </div>
                     )}
@@ -683,7 +665,7 @@ export default function RequestsPage() {
               ) : (
                 !isLoading && (
                   <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
-                    ไม่พบรายละเอียดคำร้องที่ต้องการ
+                    ��辺��������´����ͧ����ͧ���
                   </div>
                 )
               )}
@@ -694,9 +676,9 @@ export default function RequestsPage() {
               <div className="mt-3 flex w-full flex-wrap items-end gap-4">
                 <div className="flex min-w-[320px] flex-1 flex-col gap-1">
                   <div className="flex items-center text-[11px] text-slate-600">
-                    <span className="w-28">หมวดหมู่</span>
-                    <span className="w-28 pl-3">สถานะ</span>
-                    <span className="w-28 pl-3">อีเมล</span>
+                    <span className="w-28">��Ǵ����</span>
+                    <span className="w-28 pl-3">ʶҹ�</span>
+                    <span className="w-28 pl-3">�����</span>
                     <span className="flex-1" />
                   </div>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -709,23 +691,23 @@ export default function RequestsPage() {
                       }
                     >
                       <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
-                        <SelectValue placeholder="ทั้งหมด" />
+                        <SelectValue placeholder="������" />
                       </SelectTrigger>
                       <SelectContent align="start">
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="all">������</SelectItem>
                         <SelectItem value="PROBLEM">
-                          ปัญหาการใช้งาน
+                          �ѭ�ҡ����ҹ
                         </SelectItem>
                         <SelectItem value="FUNCTION">
-                          ฟังก์ชันการทำงาน
+                          �ѧ��ѹ��÷ӧҹ
                         </SelectItem>
                         <SelectItem value="NOTIFICATION">
-                          การแจ้งเตือน
+                          �������͹
                         </SelectItem>
                         <SelectItem value="ADD_MEDICINE">
-                          คำร้องขอเพิ่มยา
+                          ����ͧ��������
                         </SelectItem>
-                        <SelectItem value="OTHER">อื่นๆ</SelectItem>
+                        <SelectItem value="OTHER">����</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="h-5 w-px bg-slate-200" />
@@ -738,19 +720,19 @@ export default function RequestsPage() {
                       }
                     >
                       <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
-                        <SelectValue placeholder="ทั้งหมด" />
+                        <SelectValue placeholder="������" />
                       </SelectTrigger>
                       <SelectContent align="start">
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="PENDING">รอดำเนินการ</SelectItem>
-                        <SelectItem value="REJECTED">ปฏิเสธ</SelectItem>
-                        <SelectItem value="DONE">ดำเนินการแล้ว</SelectItem>
+                        <SelectItem value="all">������</SelectItem>
+                        <SelectItem value="PENDING">�ʹ��Թ���</SelectItem>
+                        <SelectItem value="REJECTED">����ʸ</SelectItem>
+                        <SelectItem value="DONE">���Թ�������</SelectItem>
                       </SelectContent>
                     </Select>
                     <div className="h-5 w-px bg-slate-200" />
                     <Input
                       type="text"
-                      placeholder="อีเมลผู้ส่งคำร้อง"
+                      placeholder="����ż���觤���ͧ"
                       value={searchEmailInput}
                       onChange={(event) =>
                         setSearchEmailInput(event.target.value)
@@ -763,7 +745,7 @@ export default function RequestsPage() {
 
                 <div className="flex flex-col gap-1">
                   <span className="text-[11px] text-slate-600">
-                    วันที่ส่งคำร้อง
+                    �ѹ����觤���ͧ
                   </span>
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-700">
                     <Popover>
@@ -782,7 +764,7 @@ export default function RequestsPage() {
                                     "th-TH-u-ca-buddhist",
                                     { month: "short" },
                                   )} ${fromDateInput.getFullYear() + 543}`
-                                : "เริ่มต้น"}
+                                : "�������"}
                             </span>
                           </span>
                           <CalendarIcon className="h-4 w-4 text-slate-400" />
@@ -797,7 +779,7 @@ export default function RequestsPage() {
                       </PopoverContent>
                     </Popover>
                     <span className="px-1 text-[10px] font-medium text-slate-500">
-                      ถึง
+                      �֧
                     </span>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -815,7 +797,7 @@ export default function RequestsPage() {
                                     "th-TH-u-ca-buddhist",
                                     { month: "short" },
                                   )} ${toDateInput.getFullYear() + 543}`
-                                : "สิ้นสุด"}
+                                : "����ش"}
                             </span>
                           </span>
                           <CalendarIcon className="h-4 w-4 text-slate-400" />
@@ -864,7 +846,7 @@ export default function RequestsPage() {
                         : "border-slate-400 bg-slate-100 text-slate-800 hover:bg-slate-200"
                     }`}
                   >
-                    <span>ทั้งหมด</span>
+                    <span>������</span>
                     <span className="text-sm font-bold">
                       {totalCount}
                     </span>
@@ -885,7 +867,7 @@ export default function RequestsPage() {
                         : "border-orange-500 bg-orange-500 text-orange-50 hover:bg-orange-600"
                     }`}
                   >
-                    <span>รอดำเนินการ</span>
+                    <span>�ʹ��Թ���</span>
                     <span className="text-sm font-bold">
                       {pendingCount}
                     </span>
@@ -906,7 +888,7 @@ export default function RequestsPage() {
                         : "border-red-500 bg-red-500 text-red-50 hover:bg-red-600"
                     }`}
                   >
-                    <span>ปฏิเสธ</span>
+                    <span>����ʸ</span>
                     <span className="text-sm font-bold">
                       {rejectedCount}
                     </span>
@@ -927,7 +909,7 @@ export default function RequestsPage() {
                         : "border-emerald-700 bg-emerald-600 text-emerald-50 hover:bg-emerald-700"
                     }`}
                   >
-                    <span>ดำเนินการแล้ว</span>
+                    <span>���Թ�������</span>
                     <span className="text-sm font-bold">
                       {completedCount}
                     </span>
@@ -945,11 +927,11 @@ export default function RequestsPage() {
                   <div
                     className={`text-xs font-semibold text-slate-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
                   >
-                  จำนวนรายการทั้งหมด{" "}
+                  �ӹǹ��¡�÷�����{" "}
                   <span className="text-slate-900">
                     {filteredRequests.length}
                   </span>{" "}
-                  รายการ
+                  ��¡��
                 </div>
               </div>
 
@@ -957,19 +939,19 @@ export default function RequestsPage() {
                     <TableHeader>
                       <TableRow className="bg-slate-700">
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          วันที่ส่งคำร้อง
+                          �ѹ����觤���ͧ
                         </TableHead>
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          อีเมลผู้ส่งคำร้อง
+                          ����ż���觤���ͧ
                         </TableHead>
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          หมวดหมู่คำร้อง
+                          ��Ǵ�������ͧ
                         </TableHead>
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          สถานะคำร้อง
+                          ʶҹФ���ͧ
                         </TableHead>
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-                          <span className="sr-only">การทำงาน</span>
+                          <span className="sr-only">��÷ӧҹ</span>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1027,7 +1009,7 @@ export default function RequestsPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-slate-50 shadow-sm transition hover:bg-slate-800"
-                                aria-label="เปิดรายละเอียดในแท็บใหม่"
+                                aria-label="�Դ��������´�������"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </a>
@@ -1043,9 +1025,9 @@ export default function RequestsPage() {
                           >
                             <div className="flex flex-col items-center gap-2">
                               <ImageIcon className="h-8 w-8 text-slate-300" />
-                              <span>ไม่พบข้อมูล</span>
+                              <span>��辺������</span>
                               <span className="text-xs text-slate-400">
-                                ไม่พบคำร้องตามเงื่อนไขที่เลือก
+                                ��辺����ͧ������͹䢷�����͡
                               </span>
                             </div>
                           </TableCell>
@@ -1063,7 +1045,7 @@ export default function RequestsPage() {
                       disabled={!canGoPrev}
                       className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
                     >
-                      ก่อนหน้า
+                      ��͹˹��
                     </button>
                   )}
                   <div className="flex items-center gap-1">
@@ -1093,7 +1075,7 @@ export default function RequestsPage() {
                       disabled={!canGoNext}
                       className="text-sky-700 hover:underline disabled:text-slate-400 disabled:hover:no-underline"
                     >
-                      ถัดไป
+                      �Ѵ�
                     </button>
                   )}
                 </div>
@@ -1117,7 +1099,7 @@ export default function RequestsPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={expandedImage}
-              alt="รูปคำร้องขยาย"
+              alt="�ٻ����ͧ����"
               className="max-h-[85vh] w-auto max-w-[85vw] object-contain"
             />
           </div>
@@ -1126,3 +1108,5 @@ export default function RequestsPage() {
     </SidebarProvider>
   )
 }
+
+

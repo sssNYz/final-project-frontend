@@ -173,15 +173,7 @@ export default function Page() {
         ? `/api/admin/v1/dashboard/usage?${query}`
         : "/api/admin/v1/dashboard/usage"
 
-// อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
       const res = await apiFetch(url, {
         headers,
       })
@@ -290,15 +282,8 @@ export default function Page() {
       setIsDeleting(true)
       setLoadError(null)
 
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-      }
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
       }
 
       const res = await apiFetch("/api/admin/v1/user/delete-log", {

@@ -294,16 +294,8 @@ export default function MedicinesPage() {
       setLoadError(null)
       statusRequestedRef.current.clear()
 
-// อ่าน accessToken จาก localStorage เพื่อใช้ในการเรียก API [Session Required]
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
 
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
 
       // ดึงรายการยาทั้งหมด (pageSize=1000) รวมถึงยาที่ถูกลบแล้ว (includeDeleted=true)
       const res = await apiFetch(
@@ -437,14 +429,7 @@ export default function MedicinesPage() {
 
     if (pending.length === 0) return
 
-    const accessToken =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("accessToken")
-        : null
     const headers: Record<string, string> = {}
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`
-    }
 
     pending.forEach((medicine) => {
       statusRequestedRef.current.add(medicine.id)
@@ -552,15 +537,8 @@ export default function MedicinesPage() {
     previousStatus: boolean,
   ) {
     try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
 
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
 
       const formData = new FormData()
       formData.set("mediId", id)
@@ -743,10 +721,6 @@ export default function MedicinesPage() {
     }
 
     try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
 
       const formData = new FormData()
       formData.set("mediThName", data.genericNameTh)
@@ -779,9 +753,6 @@ export default function MedicinesPage() {
       }
 
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
 
       const res = await apiFetch(
         isCreate
@@ -869,15 +840,8 @@ export default function MedicinesPage() {
     if (!confirmed) return
 
     try {
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
 
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
 
       const res = await apiFetch(
         `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
@@ -912,14 +876,7 @@ export default function MedicinesPage() {
 
     try {
       setLoadError(null)
-      const accessToken =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem("accessToken")
-          : null
       const headers: Record<string, string> = {}
-      if (accessToken) {
-        headers.Authorization = `Bearer ${accessToken}`
-      }
 
       const res = await apiFetch(
         `/api/admin/v1/medicine/detail?mediId=${encodeURIComponent(id)}`,

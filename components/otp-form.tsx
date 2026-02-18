@@ -1,6 +1,6 @@
 // ... existing code at top ...
 "use client"
-import { apiFetch } from "@/lib/apiClient"
+import { apiFetch, setRefreshToken } from "@/lib/apiClient"
 import { useState, useEffect, SetStateAction } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { ShieldCheck } from "lucide-react"
@@ -25,7 +25,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 
-// ฟอร์มกรอกรหัส OTP และ sync ข้อมูลแอดมินหลังยืนยันสำเร็จ
+// ฟอร์มกรอกรหัส OTP สำหรับยืนยันตัวตน
 export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -41,7 +41,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     }
   }, [email, router])
 
-  // ตรวจสอบรูปแบบ OTP แล้วเรียก API verifyOtp และ sync-admin
+  // ตรวจสอบรูปแบบ OTP แล้วเรียก API ยืนยัน OTP
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -61,7 +61,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
     try {
       setIsLoading(true)
 //เรียก API เพื่อยืนยัน OTP
-      const res = await apiFetch("/api/admin/v1/verifyOtp", {
+      const res = await apiFetch("/api/auth/v2/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -72,46 +72,21 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         skipAuthRedirect: true,
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
       if (!res.ok) {
         setError(data?.error || "ยืนยันรหัสไม่สำเร็จ")
         return
       }
 
-      const supabaseUserId = data.user?.user?.id
-      const accessToken = data.user?.session?.access_token
-
-      if (!supabaseUserId || !accessToken) {
-        setError("ข้อมูลยืนยันไม่ครบถ้วน")
-        return
+      const refreshToken =
+        (data?.refreshToken as string | undefined) ??
+        (data?.tokens?.refreshToken as string | undefined) ??
+        (data?.data?.refreshToken as string | undefined)
+      if (refreshToken) {
+        setRefreshToken(refreshToken)
       }
-// เตรียมข้อมูลสำหรับ sync-admin
-      const syncBody = {
-        supabaseUserId,
-        email,
-        provider: "email",
-        allowMerge: false,
-      }
-// เรียก API เพื่อ sync ข้อมูลแอดมิน
-      const syncRes = await apiFetch("/api/admin/v1/sync-admin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(syncBody),
-        skipAuth: true,
-        skipAuthRedirect: true,
-      })
-// อ่านผลลัพธ์จากการ sync ข้อมูลแอดมิน
-      const syncData = await syncRes.json().catch(() => null)
-// ตรวจสอบผลลัพธ์การ sync ข้อมูลแอดมิน
-      if (!syncRes.ok) {
-        setError(syncData?.error || "ซิงก์ข้อมูลผู้ดูแลไม่สำเร็จ")
-        return
-      }
-// นำผู้ใช้ไปยังหน้า Dashboard หลังยืนยัน OTP และ sync ข้อมูลสำเร็จ
+// นำผู้ใช้ไปยังหน้า Dashboard หลังยืนยัน OTP สำเร็จ
       router.push("/dashboard")
     } catch (err) {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ")

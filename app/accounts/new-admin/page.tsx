@@ -63,22 +63,11 @@ export default function NewAdminPage() {
     try {
       setIsLoading(true)
 
-      // ตรวจสอบอีเมลซ้ำกับ User_Account ก่อนเรียก signup
+      // ตรวจสอบอีเมลซ้ำกับ User_Account ก่อนเรียก register
       try {
 // Read token + set header
-        const accessToken =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem("accessToken")
-            : null
 
-        const headers: Record<string, string> = {}
-        if (accessToken) {
-          headers.Authorization = `Bearer ${accessToken}`
-        }
-
-        const listRes = await apiFetch("/api/admin/v1/users/list", {
-          headers,
-        })
+        const listRes = await apiFetch("/api/admin/v1/users/list")
 
         const listData = await listRes.json().catch(() => null)
 
@@ -130,13 +119,12 @@ export default function NewAdminPage() {
         return
       }
 
-      const res = await apiFetch("/api/admin/v1/signup", {
+      const res = await apiFetch("/api/auth/v2/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
-          active: status === "active",
         }),
       })
 

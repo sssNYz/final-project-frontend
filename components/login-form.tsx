@@ -1,5 +1,5 @@
 "use client"
-import { apiFetch } from "@/lib/apiClient"
+import { apiFetch, setRefreshToken } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
@@ -15,7 +15,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-// ฟอร์มล็อกอินแอดมิน อ่าน token จาก API แล้วเก็บใน localStorage
 export function LoginForm({
   className,
   ...props
@@ -40,7 +39,7 @@ export function LoginForm({
     try {
       setIsLoading(true)
 // เรียก API เพื่อขอล็อกอิน
-      const res = await apiFetch("/api/admin/v1/signin", {
+      const res = await apiFetch("/api/auth/v2/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -48,24 +47,18 @@ export function LoginForm({
         skipAuthRedirect: true,
       })
 // อ่านผลลัพธ์จาก API
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 // ตรวจสอบผลลัพธ์การล็อกอิน
       if (!res.ok) {
         setError(data?.error || "Login failed")
         return
       }
-// เก็บ token และข้อมูลผู้ใช้ใน localStorage
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken)
-      }
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken)
-      }
-      if (data.user?.email || email) {
-        localStorage.setItem(
-          "currentUserEmail",
-          (data.user?.email as string | undefined) ?? email,
-        )
+      const refreshToken =
+        (data?.refreshToken as string | undefined) ??
+        (data?.tokens?.refreshToken as string | undefined) ??
+        (data?.data?.refreshToken as string | undefined)
+      if (refreshToken) {
+        setRefreshToken(refreshToken)
       }
 // นำผู้ใช้ไปยังหน้า Dashboard
       router.push("/dashboard")
