@@ -133,9 +133,10 @@ export async function apiFetch(
     headers: normalizedHeaders,
     credentials: init.credentials ?? "include",
   }
-
+// ประกาศตัวแปร res เพื่อเก็บผลลัพธ์ของการเรียก fetch API โดยใช้ฟังก์ชัน apiUrl เพื่อสร้าง URL เต็มจาก path ที่ได้รับ และใช้ requestInit เป็นตัวกำหนดการตั้งค่าของคำขอ
   const res = await fetch(apiUrl(path), requestInit)
   const isUnauthorized = res.status === 401 || res.status === 403
+  const isServerError = res.status >= 500
   const isRefreshEndpoint = path.includes("/api/auth/v2/refresh")
 
   if (!skipAuth && isUnauthorized && !isRefreshEndpoint) {
@@ -152,7 +153,7 @@ export async function apiFetch(
     }
   }
 
-  if (!skipAuthRedirect && isUnauthorized) {
+  if (!skipAuthRedirect && (isUnauthorized || isServerError)) {
     handleUnauthorized()
   }
 
