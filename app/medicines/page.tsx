@@ -201,6 +201,9 @@ export default function MedicinesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [statusUpdating, setStatusUpdating] = useState<Set<string>>(new Set())
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const [expandedBrandIds, setExpandedBrandIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [selectedFileName, setSelectedFileName] = useState<string | null>(
     null,
   )
@@ -419,6 +422,18 @@ export default function MedicinesPage() {
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
+
+  const toggleBrandName = (id: string) => {
+    setExpandedBrandIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     const pending = paginatedMedicines.filter(
@@ -1380,12 +1395,35 @@ export default function MedicinesPage() {
                             </p>
                           )}
                           {medicine.brandName ? (
-                            <p
-                              className="text-xs text-slate-600"
-                              title={medicine.brandName}
-                            >
-                              {medicine.brandName}
-                            </p>
+                            <div className="space-y-1">
+                              <p
+                                className="text-xs text-slate-600"
+                                title={medicine.brandName}
+                                style={
+                                  expandedBrandIds.has(medicine.id)
+                                    ? undefined
+                                    : {
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden",
+                                      }
+                                }
+                              >
+                                {medicine.brandName}
+                              </p>
+                              {medicine.brandName.trim().length > 90 && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleBrandName(medicine.id)}
+                                  className="text-[10px] font-semibold text-sky-700 hover:underline"
+                                >
+                                  {expandedBrandIds.has(medicine.id)
+                                    ? "ย่อ"
+                                    : "ดูเพิ่มเติม"}
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <p className="text-xs text-slate-400">-</p>
                           )}

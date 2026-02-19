@@ -3,6 +3,7 @@ import { Noto_Sans_Thai_Looped } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { AlertProvider } from "@/components/ui/alert-modal"
+import { AuthRefresh } from "@/components/auth-refresh"
 
 const myfontSan = Noto_Sans_Thai_Looped({
   subsets: ["thai", "latin"],
@@ -30,7 +31,10 @@ export default function RootLayout({
       <body
         className={`${myfontSan.variable} ${myfontMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <AlertProvider>{children}</AlertProvider>
+        <AlertProvider>
+          <AuthRefresh />
+          {children}
+        </AlertProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

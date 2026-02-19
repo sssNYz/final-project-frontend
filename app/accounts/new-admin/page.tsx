@@ -1,10 +1,11 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 import { Eye, EyeOff } from "lucide-react"
+import Swal from "sweetalert2"
 import { useAlert } from "@/components/ui/alert-modal"
 
 import { apiFetch } from "@/lib/apiClient"
@@ -31,6 +32,7 @@ import {
 
 export default function NewAdminPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { alert } = useAlert()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -40,6 +42,20 @@ export default function NewAdminPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const successFlag = searchParams.get("success")
+
+  useEffect(() => {
+    if (successFlag !== "1") return
+    setEmail("")
+    setPassword("")
+    setConfirmPassword("")
+    setStatus("active")
+    setError(null)
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("pendingRegister")
+    }
+    router.replace("/accounts/new-admin")
+  }, [router, successFlag])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -63,78 +79,51 @@ export default function NewAdminPage() {
     try {
       setIsLoading(true)
 
-      // ตรวจสอบอีเมลซ้ำกับ User_Account ก่อนเรียก register
-      try {
-// Read token + set header
-
-        const listRes = await apiFetch("/api/admin/v1/users/list")
-
-        const listData = await listRes.json().catch(() => null)
-
-        if (!listRes.ok) {
-          const message =
-            (listData && (listData.error as string | undefined)) ||
-            "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
-          setError(message)
-          void alert({
-            variant: "error",
-            title: "เกิดข้อผิดพลาด",
-            message,
-          })
-          setIsLoading(false)
-          return
-        }
-
-        const accounts = (listData?.accounts ?? []) as {
-          email?: string
-        }[]
-
-        const emailExists = accounts.some(
-          (account) =>
-            account.email &&
-            account.email.toLowerCase() === email.toLowerCase(),
-        )
-
-        if (emailExists) {
-          const message =
-            "อีเมลนี้มีอยู่ในระบบแล้ว ไม่สามารถใช้ซ้ำได้"
-          setError(message)
-          void alert({
-            variant: "error",
-            title: "เกิดข้อผิดพลาด",
-            message,
-          })
-          setIsLoading(false)
-          return
-        }
-      } catch {
-        const message = "ไม่สามารถตรวจสอบอีเมลซ้ำกับระบบได้"
-        setError(message)
-        void alert({
-          variant: "error",
-          title: "เกิดข้อผิดพลาด",
-          message,
-        })
-        setIsLoading(false)
-        return
-      }
-
-      const res = await apiFetch("/api/auth/v2/register", {
+      const res = await apiFetch("/api/admin/v2/admins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
         }),
+        skipAuthRedirect: true,
       })
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
+      const data = await res.json().catch(() => null)
+      const errorCode = String(data?.error ?? "").toLowerCase().trim()
+      const errorMessage = String(data?.message ?? "").toLowerCase().trim()
+      const errorText = `${errorCode} ${errorMessage}`.trim()
+      if (errorCode === "email_exists" || errorText.includes("email_exists")) {
+        await Swal.fire({
+          icon: "error",
+          title: "อีเมลซ้ำ",
+          text: "อีเมลนี้มีอยู่แล้วในระบบ",
+        })
+        return
+      }
+      const shouldRedirectToOtp = [
+        "not verified",
+        "not_verified",
+        "unverified",
+        "verify",
+        "verification",
+        "otp",
+        "pending",
+      ].some((token) => errorText.includes(token))
+
+      if (!res.ok && !shouldRedirectToOtp) {
         setError(data?.error || "ไม่สามารถเพิ่มบัญชีผู้ดูแลระบบได้")
         return
       }
 
-      router.push(`/otp?email=${encodeURIComponent(email)}`)
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          "pendingRegister",
+          JSON.stringify({ email, password }),
+        )
+      }
+      const returnTo = encodeURIComponent("/accounts/new-admin?success=1")
+      router.push(`/otp?email=${encodeURIComponent(email)}&returnTo=${returnTo}`)
     } catch (err) {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย")
     } finally {

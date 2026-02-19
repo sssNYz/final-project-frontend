@@ -87,7 +87,7 @@ async function refreshAccessToken(): Promise<boolean> {
 
       const data = await res.json().catch(() => null)
       if (data?.refreshToken) {
-        refreshTokenCache = data.refreshToken as string
+        setRefreshToken(data.refreshToken as string)
       }
       return true
     } catch {
@@ -131,7 +131,7 @@ export async function apiFetch(
   const requestInit: RequestInit = {
     ...init,
     headers: normalizedHeaders,
-    credentials: init.credentials ?? "include",
+    credentials: "include",
   }
 // ประกาศตัวแปร res เพื่อเก็บผลลัพธ์ของการเรียก fetch API โดยใช้ฟังก์ชัน apiUrl เพื่อสร้าง URL เต็มจาก path ที่ได้รับ และใช้ requestInit เป็นตัวกำหนดการตั้งค่าของคำขอ
   const res = await fetch(apiUrl(path), requestInit)
