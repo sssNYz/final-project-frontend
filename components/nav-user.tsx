@@ -38,12 +38,28 @@ export function NavUser({
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const storedEmail = window.sessionStorage.getItem("currentUserEmail")
+
+    const readStoredEmail = () =>
+      window.sessionStorage.getItem("currentUserEmail")
+
+    const storedEmail = readStoredEmail()
     if (storedEmail) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayEmail(storedEmail)
     }
-  }, [])
+
+    const handleFocus = () => {
+      const nextEmail = readStoredEmail()
+      if (nextEmail && nextEmail !== displayEmail) {
+        setDisplayEmail(nextEmail)
+      }
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => {
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [displayEmail])
 
   const avatarInitial =
     displayEmail && displayEmail.length > 0
