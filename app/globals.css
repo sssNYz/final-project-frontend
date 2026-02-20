@@ -43,6 +43,12 @@
 }
 
 :root {
+  --font-noto_Sans_Thai_Looped-sans: "Noto Sans Thai", "Noto Sans", "Segoe UI",
+    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", sans-serif;
+  --font-noto_Sans_Thai_Looped-mono: "Cascadia Mono", "Segoe UI Mono",
+    "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -118,7 +124,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: var(--font-geist-sans);
+    font-family: var(--font-noto_Sans_Thai_Looped-sans);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

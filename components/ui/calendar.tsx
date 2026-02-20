@@ -3,6 +3,7 @@
 import * as React from "react"
 import { DayPicker } from "react-day-picker"
 import "react-day-picker/dist/style.css"
+import { th } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
 
@@ -45,35 +46,39 @@ export function Calendar({
   }
 
   const handleClear = () => {
-    if (!props.onSelect) return
+    const onSelect =
+      "onSelect" in props ? props.onSelect : undefined
+    if (!onSelect) return
     if (mode === "range") {
-      ;(props.onSelect as (value: { from?: Date; to?: Date } | undefined) => void)(
+      ;(onSelect as (value: { from?: Date; to?: Date } | undefined) => void)(
         undefined,
       )
       return
     }
     if (mode === "multiple") {
-      ;(props.onSelect as (value: Date[] | undefined) => void)([])
+      ;(onSelect as (value: Date[] | undefined) => void)([])
       return
     }
-    ;(props.onSelect as (value: Date | undefined) => void)(undefined)
+    ;(onSelect as (value: Date | undefined) => void)(undefined)
   }
 
   const handleToday = () => {
-    if (!props.onSelect) return
+    const onSelect =
+      "onSelect" in props ? props.onSelect : undefined
+    if (!onSelect) return
     const today = new Date()
     if (mode === "range") {
-      ;(props.onSelect as (value: { from?: Date; to?: Date } | undefined) => void)({
+      ;(onSelect as (value: { from?: Date; to?: Date } | undefined) => void)({
         from: today,
         to: today,
       })
       return
     }
     if (mode === "multiple") {
-      ;(props.onSelect as (value: Date[] | undefined) => void)([today])
+      ;(onSelect as (value: Date[] | undefined) => void)([today])
       return
     }
-    ;(props.onSelect as (value: Date | undefined) => void)(today)
+    ;(onSelect as (value: Date | undefined) => void)(today)
   }
 
   return (
@@ -133,7 +138,7 @@ export function Calendar({
           return `${monthName} ${beYear}`
         },
       }}
-      locale={new Intl.Locale("th-TH-u-ca-buddhist")}
+      locale={th}
       {...props}
     />
   )

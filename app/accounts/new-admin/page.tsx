@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Eye, EyeOff } from "lucide-react"
@@ -30,7 +30,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-export default function NewAdminPage() {
+function NewAdminPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { alert } = useAlert()
@@ -304,5 +304,19 @@ export default function NewAdminPage() {
         </main>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+export default function NewAdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+          กำลังโหลด...
+        </div>
+      }
+    >
+      <NewAdminPageContent />
+    </Suspense>
   )
 }

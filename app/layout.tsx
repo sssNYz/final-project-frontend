@@ -1,19 +1,8 @@
 import type { Metadata } from "next"
-import { Noto_Sans_Thai_Looped } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { AlertProvider } from "@/components/ui/alert-modal"
 import { AuthRefresh } from "@/components/auth-refresh"
-
-const myfontSan = Noto_Sans_Thai_Looped({
-  subsets: ["thai", "latin"],
-  variable: "--font-noto_Sans_Thai_Looped-sans",
-})
-
-const myfontMono = Noto_Sans_Thai_Looped({
-  subsets: ["thai", "latin"],
-  variable: "--font-noto_Sans_Thai_Looped-mono",
-})
 
 export const metadata: Metadata = {
   title: "MediBuddy Admin",
@@ -29,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${myfontSan.variable} ${myfontMono.variable} font-sans antialiased bg-background text-foreground`}
+        className="font-sans antialiased bg-background text-foreground"
       >
         <AlertProvider>
           <AuthRefresh />

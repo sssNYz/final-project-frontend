@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 
 import {
@@ -200,7 +200,7 @@ function formatDisplayDate(isoDate: string) {
 }
 
 // คอมโพเนนต์หลักของหน้ารายการคำร้องใน Dashboard
-export default function RequestsPage() {
+function RequestsPageContent() {
   const searchParams = useSearchParams()
   const [requests, setRequests] =
     useState<RequestRow[]>(initialRequests)
@@ -1106,6 +1106,20 @@ export default function RequestsPage() {
         </div>
       )}
     </SidebarProvider>
+  )
+}
+
+export default function RequestsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">
+          กำลังโหลด...
+        </div>
+      }
+    >
+      <RequestsPageContent />
+    </Suspense>
   )
 }
 
