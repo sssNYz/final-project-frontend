@@ -311,7 +311,7 @@ export default function MedicinesPage() {
       if (!res.ok) {
         setLoadError(
           (data && (data.error as string | undefined)) ||
-            "โหลดข้อมูลยาไม่สำเร็จ",
+          "โหลดข้อมูลยาไม่สำเร็จ",
         )
         setMedicines([])
         return
@@ -509,7 +509,7 @@ export default function MedicinesPage() {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
   }
-// สลับสถานะการใช้งานของยา (เปิด/ปิด)
+  // สลับสถานะการใช้งานของยา (เปิด/ปิด)
   async function handleToggleStatus(id: string) {
     if (statusUpdating.has(id)) return
     const target = medicines.find((medicine) => medicine.id === id)
@@ -523,9 +523,8 @@ export default function MedicinesPage() {
     const confirmed = await confirm({
       variant: "warning",
       title: "ยืนยันการเปลี่ยนสถานะการใช้งาน",
-      message: `ต้องการ${
-        nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
-      } ${label} หรือไม่?`,
+      message: `ต้องการ${nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
+        } ${label} หรือไม่?`,
       confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",
       cancelText: "ยกเลิก",
     })
@@ -577,7 +576,7 @@ export default function MedicinesPage() {
         )
         notifyError(
           (payload && (payload.error as string | undefined)) ||
-            "อัปเดตสถานะการใช้งานไม่สำเร็จ",
+          "อัปเดตสถานะการใช้งานไม่สำเร็จ",
         )
         return
       }
@@ -855,22 +854,17 @@ export default function MedicinesPage() {
     if (!confirmed) return
 
     try {
-
-      const headers: Record<string, string> = {}
-
-      const res = await apiFetch(
-        `/api/admin/v1/medicine/delete?mediId=${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-          headers,
-        },
-      )
+      const res = await apiFetch("/api/admin/v2/medicine/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mediId: Number(id) }),
+      })
 
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
         notifyError(
           (payload && (payload.error as string | undefined)) ||
-            "ลบข้อมูลยาไม่สำเร็จ",
+          "ลบข้อมูลยาไม่สำเร็จ",
         )
         return
       }
@@ -902,7 +896,7 @@ export default function MedicinesPage() {
       if (!res.ok) {
         setLoadError(
           (payload && (payload.error as string | undefined)) ||
-            "โหลดรายละเอียดยาไม่สำเร็จ",
+          "โหลดรายละเอียดยาไม่สำเร็จ",
         )
         return
       }
@@ -1006,295 +1000,295 @@ export default function MedicinesPage() {
               <Card className="shadow-sm">
                 <CardContent className="space-y-4 pt-1">
                   {editingId && (
-                  <form
-                    onSubmit={handleFormSubmit}
-                    className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
-                  >
-                    <div className="mb-2 font-semibold text-slate-800">
-                      {editingId === "new"
-                        ? "เพิ่มข้อมูลยาใหม่"
-                        : "แก้ไขข้อมูลยา"}
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-[1.5fr_3fr]">
-                      <div className="space-y-3">
-                        <div className="flex flex-col gap-2">
-                          <label className="text-xs text-slate-600">
-                            รูปภาพยา
-                          </label>
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => fileInputRef.current?.click()}
-                              className="flex h-36 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white p-2 shadow-sm"
-                              aria-label="เลือกรูปภาพยา"
-                            >
-                              {imagePreview ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={imagePreview}
-                                  alt="รูปภาพยา"
-                                  className="h-full w-full object-contain"
-                                />
-                              ) : (
-                                <Pill className="h-8 w-8 text-slate-400" />
-                              )}
-                            </button>
-                          </div>
-                          <Input
-                            type="file"
-                            accept="image/png"
-                            ref={fileInputRef}
-                            id="medicine-image"
-                            onChange={(event) => {
-                              const files = event.target.files
-                              if (!files || files.length === 0) {
-                                setSelectedFileName(null)
-                                return
-                              }
-
-                              const file = files[0]
-
-                              if (file.type !== "image/png") {
-                                void alert({
-                                  variant: "warning",
-                                  title: "ไฟล์ไม่ถูกต้อง",
-                                  message:
-                                    "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
-                                })
-                                event.target.value = ""
-                                setSelectedFileName(null)
-                                return
-                              }
-
-                              const url = URL.createObjectURL(file)
-                              setImagePreview((previous) => {
-                                if (previous && previous.startsWith("blob:")) {
-                                  URL.revokeObjectURL(previous)
+                    <form
+                      onSubmit={handleFormSubmit}
+                      className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
+                    >
+                      <div className="mb-2 font-semibold text-slate-800">
+                        {editingId === "new"
+                          ? "เพิ่มข้อมูลยาใหม่"
+                          : "แก้ไขข้อมูลยา"}
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-[1.5fr_3fr]">
+                        <div className="space-y-3">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs text-slate-600">
+                              รูปภาพยา
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex h-36 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white p-2 shadow-sm"
+                                aria-label="เลือกรูปภาพยา"
+                              >
+                                {imagePreview ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={imagePreview}
+                                    alt="รูปภาพยา"
+                                    className="h-full w-full object-contain"
+                                  />
+                                ) : (
+                                  <Pill className="h-8 w-8 text-slate-400" />
+                                )}
+                              </button>
+                            </div>
+                            <Input
+                              type="file"
+                              accept="image/png"
+                              ref={fileInputRef}
+                              id="medicine-image"
+                              onChange={(event) => {
+                                const files = event.target.files
+                                if (!files || files.length === 0) {
+                                  setSelectedFileName(null)
+                                  return
                                 }
-                                return url
-                              })
-                              setSelectedFileName(file.name)
-                            }}
-                            className="sr-only"
-                          />
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="h-9 rounded-md bg-sky-700 px-3 text-xs font-semibold text-white hover:bg-sky-800"
-                              onClick={() => fileInputRef.current?.click()}
+
+                                const file = files[0]
+
+                                if (file.type !== "image/png") {
+                                  void alert({
+                                    variant: "warning",
+                                    title: "ไฟล์ไม่ถูกต้อง",
+                                    message:
+                                      "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
+                                  })
+                                  event.target.value = ""
+                                  setSelectedFileName(null)
+                                  return
+                                }
+
+                                const url = URL.createObjectURL(file)
+                                setImagePreview((previous) => {
+                                  if (previous && previous.startsWith("blob:")) {
+                                    URL.revokeObjectURL(previous)
+                                  }
+                                  return url
+                                })
+                                setSelectedFileName(file.name)
+                              }}
+                              className="sr-only"
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-9 rounded-md bg-sky-700 px-3 text-xs font-semibold text-white hover:bg-sky-800"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                เลือกไฟล์
+                              </Button>
+                              <span className="text-xs text-slate-500">
+                                {selectedFileName || "ยังไม่ได้เลือกไฟล์"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400">
+                              รองรับเฉพาะไฟล์รูปภาพนามสกุล PNG
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <label className="text-xs text-slate-600">
+                                ชื่อสามัญทางยาภาษาไทย
+                              </label>
+                              <Input
+                                value={formValues.genericNameTh}
+                                onChange={(event) =>
+                                  handleFormChange(
+                                    "genericNameTh",
+                                    event.target.value,
+                                  )
+                                }
+                                className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                                placeholder="เช่น พาราเซตามอล"
+                              />
+                            </div>
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <label className="text-xs text-slate-600">
+                                ชื่อสามัญทางยาภาษาอังกฤษ
+                              </label>
+                              <Input
+                                value={formValues.genericNameEn}
+                                onChange={(event) =>
+                                  handleFormChange(
+                                    "genericNameEn",
+                                    event.target.value,
+                                  )
+                                }
+                                className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
+                                placeholder="เช่น Paracetamol"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              ชื่อการค้ายา
+                            </label>
+                            <textarea
+                              value={formValues.brandName}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "brandName",
+                                  event.target.value,
+                                )
+                              }
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="เช่น Tylenol"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              รูปแบบการใช้ยา
+                            </label>
+                            <Select
+                              value={formValues.usageType}
+                              onValueChange={(value) =>
+                                handleFormChange(
+                                  "usageType",
+                                  value as UsageType,
+                                )
+                              }
                             >
-                              เลือกไฟล์
-                            </Button>
-                            <span className="text-xs text-slate-500">
-                              {selectedFileName || "ยังไม่ได้เลือกไฟล์"}
-                            </span>
+                              <SelectTrigger className="h-9 rounded-md border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
+                                <SelectValue placeholder="เลือกรูปแบบการใช้ยา" />
+                              </SelectTrigger>
+                              <SelectContent align="start">
+                                <SelectItem value="oral">ยากิน</SelectItem>
+                                <SelectItem value="topical">
+                                  ยาใช้ภายนอก
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <p className="text-[11px] text-slate-400">
-                            รองรับเฉพาะไฟล์รูปภาพนามสกุล PNG
-                          </p>
                         </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="mt-4 space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              ข้อบ่งใช้
+                            </label>
+                            <textarea
+                              value={formValues.indications}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "indications",
+                                  event.target.value,
+                                )
+                              }
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="อธิบายข้อบ่งใช้ของยา เช่น ลดไข้ บรรเทาอาการปวดศีรษะ"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              คำแนะนำการใช้ยา
+                            </label>
+                            <textarea
+                              value={formValues.instructions}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "instructions",
+                                  event.target.value,
+                                )
+                              }
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="วิธีการใช้ยา เวลาในการรับประทาน และข้อควรปฏิบัติ"
+                            />
+                          </div>
+                        </div>
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div className="flex min-w-0 flex-col gap-1">
+                          <div className="flex flex-col gap-1">
                             <label className="text-xs text-slate-600">
-                              ชื่อสามัญทางยาภาษาไทย
+                              อาการไม่พึงประสงค์จากการใช้ยา
                             </label>
-                            <Input
-                              value={formValues.genericNameTh}
+                            <textarea
+                              value={formValues.adverseEffects}
                               onChange={(event) =>
                                 handleFormChange(
-                                  "genericNameTh",
+                                  "adverseEffects",
                                   event.target.value,
                                 )
                               }
-                              className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
-                              placeholder="เช่น พาราเซตามอล"
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="เช่น คลื่นไส้ ผื่นคัน เวียนศีรษะ"
                             />
                           </div>
-                          <div className="flex min-w-0 flex-col gap-1">
+                          <div className="flex flex-col gap-1">
                             <label className="text-xs text-slate-600">
-                              ชื่อสามัญทางยาภาษาอังกฤษ
+                              ข้อห้ามใช้
                             </label>
-                            <Input
-                              value={formValues.genericNameEn}
+                            <textarea
+                              value={formValues.contraindications}
                               onChange={(event) =>
                                 handleFormChange(
-                                  "genericNameEn",
+                                  "contraindications",
                                   event.target.value,
                                 )
                               }
-                              className="h-9 rounded-md border border-slate-200 bg-white text-xs text-slate-800"
-                              placeholder="เช่น Paracetamol"
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="เช่น ห้ามใช้ในผู้ที่เคยแพ้ยานี้อย่างรุนแรง"
                             />
                           </div>
                         </div>
-                        <div className="flex min-w-0 flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            ชื่อการค้ายา
-                          </label>
-                          <textarea
-                            value={formValues.brandName}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "brandName",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="เช่น Tylenol"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            รูปแบบการใช้ยา
-                          </label>
-                          <Select
-                            value={formValues.usageType}
-                            onValueChange={(value) =>
-                              handleFormChange(
-                                "usageType",
-                                value as UsageType,
-                              )
-                            }
-                          >
-                            <SelectTrigger className="h-9 rounded-md border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
-                              <SelectValue placeholder="เลือกรูปแบบการใช้ยา" />
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                              <SelectItem value="oral">ยากิน</SelectItem>
-                              <SelectItem value="topical">
-                                ยาใช้ภายนอก
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              ข้อควรระวังในการใช้
+                            </label>
+                            <textarea
+                              value={formValues.precautions}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "precautions",
+                                  event.target.value,
+                                )
+                              }
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="เช่น ใช้ด้วยความระมัดระวังในผู้ป่วยโรคตับหรือไต"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-600">
+                              การเก็บรักษา
+                            </label>
+                            <textarea
+                              value={formValues.storage}
+                              onChange={(event) =>
+                                handleFormChange(
+                                  "storage",
+                                  event.target.value,
+                                )
+                              }
+                              className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
+                              placeholder="เช่น เก็บที่อุณหภูมิห้อง หลีกเลี่ยงความชื้นและแสงแดด"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="mt-4 space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            ข้อบ่งใช้
-                          </label>
-                          <textarea
-                            value={formValues.indications}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "indications",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="อธิบายข้อบ่งใช้ของยา เช่น ลดไข้ บรรเทาอาการปวดศีรษะ"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            คำแนะนำการใช้ยา
-                          </label>
-                          <textarea
-                            value={formValues.instructions}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "instructions",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="วิธีการใช้ยา เวลาในการรับประทาน และข้อควรปฏิบัติ"
-                          />
-                        </div>
+                      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-md px-4 text-xs"
+                          onClick={cancelForm}
+                        >
+                          ยกเลิก
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="sm"
+                          className="rounded-md bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
+                        >
+                          บันทึกข้อมูลยา
+                        </Button>
                       </div>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            อาการไม่พึงประสงค์จากการใช้ยา
-                          </label>
-                          <textarea
-                            value={formValues.adverseEffects}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "adverseEffects",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="เช่น คลื่นไส้ ผื่นคัน เวียนศีรษะ"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            ข้อห้ามใช้
-                          </label>
-                          <textarea
-                            value={formValues.contraindications}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "contraindications",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="เช่น ห้ามใช้ในผู้ที่เคยแพ้ยานี้อย่างรุนแรง"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            ข้อควรระวังในการใช้
-                          </label>
-                          <textarea
-                            value={formValues.precautions}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "precautions",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="เช่น ใช้ด้วยความระมัดระวังในผู้ป่วยโรคตับหรือไต"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-600">
-                            การเก็บรักษา
-                          </label>
-                          <textarea
-                            value={formValues.storage}
-                            onChange={(event) =>
-                              handleFormChange(
-                                "storage",
-                                event.target.value,
-                              )
-                            }
-                            className="min-h-[60px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-100"
-                            placeholder="เช่น เก็บที่อุณหภูมิห้อง หลีกเลี่ยงความชื้นและแสงแดด"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="rounded-md px-4 text-xs"
-                        onClick={cancelForm}
-                      >
-                        ยกเลิก
-                      </Button>
-                      <Button
-                        type="submit"
-                        size="sm"
-                        className="rounded-md bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700"
-                      >
-                        บันทึกข้อมูลยา
-                      </Button>
-                    </div>
-                  </form>
+                    </form>
                   )}
 
                   {loadError && (
@@ -1353,7 +1347,7 @@ export default function MedicinesPage() {
                             onClick={() =>
                               setExpandedImage(
                                 medicine.imageUrl ||
-                                  "/medicine-placeholder.svg",
+                                "/medicine-placeholder.svg",
                               )
                             }
                             className="flex h-36 w-full items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-100"
@@ -1403,11 +1397,11 @@ export default function MedicinesPage() {
                                   expandedBrandIds.has(medicine.id)
                                     ? undefined
                                     : {
-                                        display: "-webkit-box",
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical",
-                                        overflow: "hidden",
-                                      }
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                    }
                                 }
                               >
                                 {medicine.brandName}
@@ -1437,13 +1431,12 @@ export default function MedicinesPage() {
                               typeof medicine.status !== "boolean" ||
                               statusUpdating.has(medicine.id)
                             }
-                            className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed ${
-                              typeof medicine.status !== "boolean"
+                            className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors disabled:cursor-not-allowed ${typeof medicine.status !== "boolean"
                                 ? "border-slate-300 bg-slate-100 text-slate-400"
                                 : medicine.status
                                   ? "border-emerald-500 bg-emerald-500 text-white"
                                   : "border-red-500 bg-red-500 text-white"
-                            }`}
+                              }`}
                             aria-pressed={
                               typeof medicine.status === "boolean"
                                 ? medicine.status
@@ -1459,13 +1452,12 @@ export default function MedicinesPage() {
                             </span>
                             <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white">
                               <span
-                                className={`h-2.5 w-2.5 rounded-full ${
-                                  typeof medicine.status !== "boolean"
+                                className={`h-2.5 w-2.5 rounded-full ${typeof medicine.status !== "boolean"
                                     ? "bg-slate-300"
                                     : medicine.status
                                       ? "bg-emerald-500"
                                       : "bg-red-500"
-                                }`}
+                                  }`}
                               />
                             </span>
                           </button>
@@ -1525,11 +1517,10 @@ export default function MedicinesPage() {
                           key={page}
                           type="button"
                           onClick={() => goToPage(page)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${
-                            isActive
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs ${isActive
                               ? "bg-sky-700 text-white"
                               : "text-slate-700 hover:bg-slate-100"
-                          }`}
+                            }`}
                         >
                           {page}
                         </button>
@@ -1588,7 +1579,7 @@ export default function MedicinesPage() {
                       onClick={() =>
                         setExpandedImage(
                           viewingMedicine.imageUrl ||
-                            "/medicine-placeholder.svg",
+                          "/medicine-placeholder.svg",
                         )
                       }
                       className="flex h-20 w-20 cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200"

@@ -2,6 +2,7 @@
 import { apiFetch, setRefreshToken } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -142,6 +143,14 @@ export function LoginForm({
                       <EyeOff className="h-4 w-4" />
                     )}
                   </button>
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-semibold text-sky-200 hover:text-white"
+                  >
+                    ลืมรหัสผ่าน?
+                  </Link>
                 </div>
               </Field>
 

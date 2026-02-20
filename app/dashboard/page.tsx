@@ -8,6 +8,7 @@ import { Calendar as CalendarIcon, Clock } from "lucide-react"
 import Swal from "sweetalert2"
 
 import { apiFetch } from "@/lib/apiClient"
+import { ensureVerifiedAction, showDeleteSuccess } from "@/lib/verify-action"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
@@ -294,7 +295,23 @@ export default function Page() {
         cancelButtonColor: "#94a3b8",
       })
 
+      // การการยืนยันรหัสผ่านอีกครั้งก่อนลบข้อมูล
       if (!confirmResult.isConfirmed) {
+        return
+      }
+
+      const verification = await ensureVerifiedAction()
+      if (!verification.ok) {
+        if (verification.reason === "cancelled") {
+          return
+        }
+        const message = verification.message || "ยืนยันรหัสผ่านไม่สำเร็จ"
+        const isSessionExpired = verification.reason === "unauthorized"
+        await Swal.fire({
+          icon: isSessionExpired ? "warning" : "error",
+          title: isSessionExpired ? "เซสชันหมดอายุ" : "ยืนยันไม่สำเร็จ",
+          text: message,
+        })
         return
       }
 
@@ -328,12 +345,8 @@ export default function Page() {
       }
 
       await fetchUsage()
-      await Swal.fire({
-        icon: "success",
-        title: "ลบข้อมูลสำเร็จ",
+      await showDeleteSuccess({
         text: "ลบประวัติการทานยาเรียบร้อยแล้ว",
-        showConfirmButton: false,
-        timer: 1600,
       })
     } catch {
       const message = "เกิดข้อผิดพลาดในการลบข้อมูล"
