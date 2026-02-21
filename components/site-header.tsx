@@ -3,6 +3,7 @@
 import { NavUser } from "@/components/nav-user"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { getLoggedInUserEmail } from "@/lib/authUser"
 
 const headerUser = {
   name: "admin",
@@ -12,6 +13,8 @@ const headerUser = {
 
 // Header ด้านบนของหน้า Dashboard แสดงโลโก้ ปุ่มเปิด Sidebar และข้อมูลผู้ใช้
 export function SiteHeader() {
+  const email = getLoggedInUserEmail() ?? headerUser.email
+
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b border-slate-900/10 bg-gradient-to-r from-slate-900 via-sky-800 to-sky-500 text-white shadow-sm transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-2 px-4 lg:gap-3 lg:px-6">
@@ -29,7 +32,7 @@ export function SiteHeader() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2 pr-2">
-          <NavUser user={headerUser} />
+          <NavUser user={{ ...headerUser, email }} />
         </div>
       </div>
     </header>
