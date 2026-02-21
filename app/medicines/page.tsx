@@ -526,6 +526,7 @@ export default function MedicinesPage() {
       message: `ต้องการ${nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
         } ${label} หรือไม่?`,
       confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",
+      confirmButtonColor: nextStatus ? "#16a34a" : "#ef4444",
       cancelText: "ยกเลิก",
     })
     if (!confirmed) return

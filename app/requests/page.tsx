@@ -937,7 +937,7 @@ function RequestsPageContent() {
 
               <Table className="border border-slate-200 bg-white">
                     <TableHeader>
-                      <TableRow className="bg-slate-700">
+                      <TableRow className="bg-slate-700 hover:bg-slate-700">
                         <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
                           วันที่ส่งคำร้อง
                         </TableHead>

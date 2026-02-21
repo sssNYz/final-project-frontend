@@ -16,6 +16,7 @@ type AlertOptions = {
   variant?: AlertVariant
   confirmText?: string
   cancelText?: string
+  confirmButtonColor?: string
 }
 
 type AlertContextValue = {
@@ -63,7 +64,8 @@ export function AlertProvider({
           showCancelButton: true,
           confirmButtonText: options.confirmText ?? "ยืนยัน",
           cancelButtonText: options.cancelText ?? "ยกเลิก",
-          confirmButtonColor: "#ef4444",
+          confirmButtonColor:
+            options.confirmButtonColor ?? "#ef4444",
           cancelButtonColor: "#94a3b8",
         })
         return result.isConfirmed

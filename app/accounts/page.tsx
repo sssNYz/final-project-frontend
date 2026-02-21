@@ -206,6 +206,7 @@ export default function AccountsPage() {
         nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
       } บัญชี ${target.email} หรือไม่?`,
       confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",
+      confirmButtonColor: nextStatus ? "#16a34a" : "#ef4444",
       cancelText: "ยกเลิก",
     })
     if (!confirmed) return
