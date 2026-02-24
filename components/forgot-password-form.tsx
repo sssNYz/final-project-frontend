@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Mail } from "lucide-react"
+import { Eye, EyeOff, Mail } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { apiFetch } from "@/lib/apiClient"
 import { cn } from "@/lib/utils"
@@ -22,49 +23,113 @@ export function ForgotPasswordForm({
 }: React.ComponentProps<"div">) {
   const defaultRedirectTo = "https://admin.medi-buddy.xyz/forgot-password"
   const [email, setEmail] = useState("")
+  const [token, setToken] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [mode, setMode] = useState<"request" | "reset">("request")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const currentToken =
+      new URLSearchParams(window.location.search).get("token") ?? ""
+    setToken(currentToken)
+    setMode(currentToken ? "reset" : "request")
+  }, [])
+
+  const backendErrorMessage = useMemo(
+    () => (data: unknown) => {
+      if (!data || typeof data !== "object") return null
+      const payload = data as Record<string, unknown>
+      return (
+        (payload.error as string | undefined) ||
+        (payload.message as string | undefined) ||
+        (payload.detail as string | undefined) ||
+        null
+      )
+    },
+    [],
+  )
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setNotice(null)
 
-    if (!email) {
-      setError("กรุณากรอกอีเมล")
-      return
+    if (mode === "request") {
+      if (!email) {
+        setError("กรุณากรอกอีเมล")
+        return
+      }
+    } else {
+      if (!token) {
+        setError("ไม่พบโทเค็นรีเซ็ตรหัสผ่าน")
+        return
+      }
+      if (!newPassword || !confirmPassword) {
+        setError("กรุณากรอกรหัสผ่านใหม่ให้ครบ")
+        return
+      }
+      if (newPassword.length < 8) {
+        setError("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร")
+        return
+      }
+      if (newPassword !== confirmPassword) {
+        setError("รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน")
+        return
+      }
     }
 
     try {
       setIsLoading(true)
-      const redirectTo =
-        process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
-        defaultRedirectTo
-
-      const res = await apiFetch("/api/auth/v2/forgot-password/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, redirectTo }),
-        skipAuth: true,
-        skipAuthRedirect: true,
-      })
-      // ลอง parse JSON แต่ถ้าไม่สำเร็จให้เป็น null แทน เพื่อป้องกัน error ในกรณีที่ response ไม่ใช่ JSON
+      const res =
+        mode === "request"
+          ? await apiFetch("/api/auth/v2/forgot-password/request", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                redirectTo:
+                  process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
+                  defaultRedirectTo,
+              }),
+              skipAuth: true,
+              skipAuthRedirect: true,
+            })
+          : await apiFetch("/api/auth/v2/forgot-password/reset", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                token,
+                newPassword,
+              }),
+              skipAuth: true,
+              skipAuthRedirect: true,
+            })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        const backendMessage =
-          (data &&
-            ((data.error as string | undefined) ||
-              (data.message as string | undefined) ||
-              (data.detail as string | undefined))) ||
-          null
         setError(
-          backendMessage ||
-            "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้",
+          backendErrorMessage(data) ||
+            (mode === "request"
+              ? "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้"
+              : "ไม่สามารถเปลี่ยนรหัสผ่านได้"),
         )
         return
       }
-      setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว")
+      if (mode === "request") {
+        setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว")
+        return
+      }
+
+      setNotice("เปลี่ยนรหัสผ่านสำเร็จ กำลังกลับไปหน้าเข้าสู่ระบบ...")
+      setTimeout(() => {
+        router.push("/")
+      }, 1200)
     } catch {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ")
     } finally {
@@ -89,27 +154,159 @@ export function ForgotPasswordForm({
             ลืมรหัสผ่าน
           </CardTitle>
           <p className="text-sm text-white/70">
-            กรอกอีเมลเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่
+            {mode === "request"
+              ? "กรอกอีเมลเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่"
+              : "ตั้งรหัสผ่านใหม่จากโทเค็นที่ได้รับในอีเมล"}
           </p>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-full bg-white/10 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("request")
+                setError(null)
+                setNotice(null)
+              }}
+              className={cn(
+                "rounded-full px-3 py-2 text-xs font-semibold transition",
+                mode === "request"
+                  ? "bg-sky-500 text-white"
+                  : "text-white/70 hover:text-white",
+              )}
+            >
+              ขออีเมลรีเซ็ต
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("reset")
+                setError(null)
+                setNotice(null)
+              }}
+              className={cn(
+                "rounded-full px-3 py-2 text-xs font-semibold transition",
+                mode === "reset"
+                  ? "bg-sky-500 text-white"
+                  : "text-white/70 hover:text-white",
+              )}
+            >
+              ตั้งรหัสใหม่
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <FieldGroup className="space-y-2">
-              <Field>
-                <FieldLabel htmlFor="email" className="text-xs text-white/70">
-                  อีเมล
-                </FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="กรอกอีเมล"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
-                />
-              </Field>
+              {mode === "request" ? (
+                <Field>
+                  <FieldLabel htmlFor="email" className="text-xs text-white/70">
+                    อีเมล
+                  </FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="กรอกอีเมล"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                  />
+                </Field>
+              ) : (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="token" className="text-xs text-white/70">
+                      Token
+                    </FieldLabel>
+                    <Input
+                      id="token"
+                      type="text"
+                      placeholder="token"
+                      required
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      disabled={isLoading}
+                      className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="new-password" className="text-xs text-white/70">
+                      รหัสผ่านใหม่
+                    </FieldLabel>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="อย่างน้อย 8 ตัวอักษร"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pr-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowNewPassword((prev) => !prev)
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+                        aria-label={
+                          showNewPassword ? "ซ่อนรหัสผ่านใหม่" : "แสดงรหัสผ่านใหม่"
+                        }
+                        aria-pressed={showNewPassword}
+                        disabled={isLoading}
+                      >
+                        {showNewPassword ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <EyeOff className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </Field>
+                  <Field>
+                    <FieldLabel
+                      htmlFor="confirm-password"
+                      className="text-xs text-white/70"
+                    >
+                      ยืนยันรหัสผ่านใหม่
+                    </FieldLabel>
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="กรอกรหัสผ่านเดิมอีกครั้ง"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pr-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword((prev) => !prev)
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+                        aria-label={
+                          showConfirmPassword
+                            ? "ซ่อนยืนยันรหัสผ่านใหม่"
+                            : "แสดงยืนยันรหัสผ่านใหม่"
+                        }
+                        aria-pressed={showConfirmPassword}
+                        disabled={isLoading}
+                      >
+                        {showConfirmPassword ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <EyeOff className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </Field>
+                </>
+              )}
 
               {notice && (
                 <p className="text-center text-sm text-emerald-200">
@@ -128,7 +325,11 @@ export function ForgotPasswordForm({
                   disabled={isLoading}
                   className="mt-2 w-full rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600"
                 >
-                  {isLoading ? "กำลังส่ง..." : "ส่งลิงก์รีเซ็ต"}
+                  {isLoading
+                    ? "กำลังดำเนินการ..."
+                    : mode === "request"
+                      ? "ส่งลิงก์รีเซ็ต"
+                      : "บันทึกรหัสผ่านใหม่"}
                 </Button>
               </Field>
             </FieldGroup>
