@@ -33,12 +33,22 @@ export function ForgotPasswordForm({
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const forgotEmailStorageKey = "forgotPasswordEmail"
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const currentToken =
-      new URLSearchParams(window.location.search).get("token") ?? ""
+    const searchParams = new URLSearchParams(window.location.search)
+    const currentToken = searchParams.get("token") ?? ""
+    const emailFromQuery = searchParams.get("email") ?? ""
+    const emailFromStorage =
+      window.sessionStorage.getItem(forgotEmailStorageKey) ?? ""
+
     setToken(currentToken)
+    if (emailFromQuery) {
+      setEmail(emailFromQuery)
+    } else if (emailFromStorage) {
+      setEmail(emailFromStorage)
+    }
     setMode(currentToken ? "reset" : "request")
   }, [])
 
@@ -122,6 +132,9 @@ export function ForgotPasswordForm({
         return
       }
       if (mode === "request") {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(forgotEmailStorageKey, email)
+        }
         setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว")
         return
       }
@@ -216,17 +229,15 @@ export function ForgotPasswordForm({
               ) : (
                 <>
                   <Field>
-                    <FieldLabel htmlFor="token" className="text-xs text-white/70">
-                      Token
+                    <FieldLabel htmlFor="reset-email" className="text-xs text-white/70">
+                      อีเมล
                     </FieldLabel>
                     <Input
-                      id="token"
-                      type="text"
-                      placeholder="token"
-                      required
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      disabled={isLoading}
+                      id="reset-email"
+                      type="email"
+                      value={email}
+                      disabled
+                      readOnly
                       className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
                     />
                   </Field>
