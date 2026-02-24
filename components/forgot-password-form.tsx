@@ -125,6 +125,10 @@ export function ForgotPasswordForm({
             })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
+        if (!isResetFlow && res.status === 404) {
+          setError("Email not found in our system.")
+          return
+        }
         setError(
           backendErrorMessage(data) ||
             (!isResetFlow
@@ -137,7 +141,7 @@ export function ForgotPasswordForm({
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(forgotEmailStorageKey, email)
         }
-        setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลแล้ว")
+        setNotice("A password reset link has been sent to your email.")
         return
       }
 
