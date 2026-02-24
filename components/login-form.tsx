@@ -51,7 +51,12 @@ export function LoginForm({
       const data = await res.json().catch(() => null)
 // ตรวจสอบผลลัพธ์การล็อกอิน
       if (!res.ok) {
-        setError(data?.error || "Login failed")
+        const errorCode = (data?.error as string | undefined) ?? ""
+        if (errorCode === "INVALID_CREDENTIALS") {
+          setError("รหัสผ่านไม่ถูกต้อง")
+        } else {
+          setError(errorCode || "เข้าสู่ระบบไม่สำเร็จ")
+        }
         return
       }
       const refreshToken =
