@@ -126,7 +126,7 @@ export function ForgotPasswordForm({
       const data = await res.json().catch(() => null)
       if (!res.ok) {
         if (!isResetFlow && res.status === 404) {
-          setError("Email not found in our system.")
+          setError("ไม่พบบัญชีนี้ในระบบ")
           return
         }
         setError(
