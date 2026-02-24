@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react"
 
 import { apiFetch } from "@/lib/apiClient"
 
-const REFRESH_INTERVAL_MS = 10 * 60 * 1000
+const REFRESH_INTERVAL_MS = 14 * 60 * 1000
 
 export function AuthRefresh() {
   const timerRef = useRef<number | null>(null)
