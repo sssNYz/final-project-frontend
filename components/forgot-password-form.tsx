@@ -37,10 +37,16 @@ export function ForgotPasswordForm({
 
     try {
       setIsLoading(true)
-      const res = await apiFetch("/api/auth/v2/forgot-password", {
+      const redirectTo =
+        process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
+        (typeof window !== "undefined"
+          ? `${window.location.origin}/forgot-password`
+          : "https://admin.medi-buddy.xyz/forgot-password")
+
+      const res = await apiFetch("/api/auth/v2/forgot-password/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, redirectTo }),
         skipAuth: true,
         skipAuthRedirect: true,
       })

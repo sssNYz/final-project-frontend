@@ -109,7 +109,7 @@ export function AccountUsageTable({
       </div>
       <Table className="border border-slate-200 bg-white">
         <TableHeader>
-          <TableRow className="bg-slate-700">
+          <TableRow className="bg-slate-700 hover:bg-slate-700">
             {selectable && (
               <TableHead className="w-10 px-4 py-3 text-center text-xs font-semibold text-white">
                 <input

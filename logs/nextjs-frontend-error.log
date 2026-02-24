@@ -1,0 +1,1 @@
+2026-02-22 00:24:01 +00:00: ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
