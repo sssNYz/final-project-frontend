@@ -24,7 +24,7 @@ export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div"> & { flow?: ForgotPasswordFlow }) {
-  const defaultRedirectTo = "https://admin.medi-buddy.xyz/forgot-password/reset"
+  const defaultRedirectTo = "https://admin.medi-buddy.xyz/reset"
   const [email, setEmail] = useState("")
   const [token, setToken] = useState("")
   const [newPassword, setNewPassword] = useState("")

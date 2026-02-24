@@ -1,6 +1,6 @@
 import { ForgotPasswordForm } from "@/components/forgot-password-form"
 
-// หน้า /forgot-password/reset สำหรับตั้งรหัสผ่านใหม่
+// หน้า reset สำหรับตั้งรหัสผ่านใหม่
 export default function ResetPasswordPage() {
   return (
     <div className="relative min-h-svh w-full overflow-hidden bg-sky-50 text-slate-900">
