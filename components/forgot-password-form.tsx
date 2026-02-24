@@ -171,16 +171,8 @@ export function ForgotPasswordForm({
           <p className="text-sm text-white/70">
             {!isResetFlow
               ? "กรอกอีเมลเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่"
-              : "ตั้งรหัสผ่านใหม่จาก Token ที่ได้รับในอีเมล"}
-          </p>
-          {isResetFlow && (
-            <p className="mt-2 text-xs text-sky-100">
-                อีเมลที่ได้รับลิงก์รีเซ็ต:{" "}
-              <span className="ml-1 font-semibold text-white">
-                {email || "ไม่พบอีเมลในลิงก์รีเซ็ต"}
-              </span>
-            </p>
-          )}
+              : "กรอกรหัสผ่านใหม่ที่ต้องการใช้"}
+          </p>      
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
