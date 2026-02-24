@@ -53,7 +53,7 @@ export function LoginForm({
       if (!res.ok) {
         const errorCode = (data?.error as string | undefined) ?? ""
         if (errorCode === "INVALID_CREDENTIALS") {
-          setError("รหัสผ่านไม่ถูกต้อง")
+          setError("รหัสผ่านหรืออีเมลไม่ถูกต้อง")
         } else {
           setError(errorCode || "เข้าสู่ระบบไม่สำเร็จ")
         }
