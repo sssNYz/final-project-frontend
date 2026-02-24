@@ -17,40 +17,42 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+type ForgotPasswordFlow = "request" | "reset"
+
 export function ForgotPasswordForm({
+  flow = "request",
   className,
   ...props
-}: React.ComponentProps<"div">) {
-  const defaultRedirectTo = "https://admin.medi-buddy.xyz/forgot-password"
+}: React.ComponentProps<"div"> & { flow?: ForgotPasswordFlow }) {
+  const defaultRedirectTo = "https://admin.medi-buddy.xyz/forgot-password/reset"
   const [email, setEmail] = useState("")
   const [token, setToken] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [mode, setMode] = useState<"request" | "reset">("request")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const forgotEmailStorageKey = "forgotPasswordEmail"
+  const isResetFlow = flow === "reset"
 
   useEffect(() => {
+    if (!isResetFlow) return
     if (typeof window === "undefined") return
+
     const searchParams = new URLSearchParams(window.location.search)
     const currentToken = searchParams.get("token") ?? ""
     const emailFromQuery = searchParams.get("email") ?? ""
-    const emailFromStorage =
-      window.sessionStorage.getItem(forgotEmailStorageKey) ?? ""
-
+    const emailFromStorage = window.sessionStorage.getItem(forgotEmailStorageKey) ?? ""
     setToken(currentToken)
     if (emailFromQuery) {
       setEmail(emailFromQuery)
     } else if (emailFromStorage) {
       setEmail(emailFromStorage)
     }
-    setMode(currentToken ? "reset" : "request")
-  }, [])
+  }, [isResetFlow])
 
   const backendErrorMessage = useMemo(
     () => (data: unknown) => {
@@ -71,7 +73,7 @@ export function ForgotPasswordForm({
     setError(null)
     setNotice(null)
 
-    if (mode === "request") {
+    if (!isResetFlow) {
       if (!email) {
         setError("กรุณากรอกอีเมล")
         return
@@ -98,7 +100,7 @@ export function ForgotPasswordForm({
     try {
       setIsLoading(true)
       const res =
-        mode === "request"
+        !isResetFlow
           ? await apiFetch("/api/auth/v2/forgot-password/request", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -125,13 +127,13 @@ export function ForgotPasswordForm({
       if (!res.ok) {
         setError(
           backendErrorMessage(data) ||
-            (mode === "request"
+            (!isResetFlow
               ? "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้"
               : "ไม่สามารถเปลี่ยนรหัสผ่านได้"),
         )
         return
       }
-      if (mode === "request") {
+      if (!isResetFlow) {
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(forgotEmailStorageKey, email)
         }
@@ -164,53 +166,26 @@ export function ForgotPasswordForm({
             <Mail className="h-5 w-5" />
           </div>
           <CardTitle className="mt-4 text-2xl font-bold text-white">
-            ลืมรหัสผ่าน
+            {isResetFlow ? "ตั้งรหัสผ่านใหม่" : "ลืมรหัสผ่าน"}
           </CardTitle>
           <p className="text-sm text-white/70">
-            {mode === "request"
+            {!isResetFlow
               ? "กรอกอีเมลเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่"
-              : "ตั้งรหัสผ่านใหม่จากโทเค็นที่ได้รับในอีเมล"}
+              : "ตั้งรหัสผ่านใหม่จาก Token ที่ได้รับในอีเมล"}
           </p>
+          {isResetFlow && (
+            <p className="mt-2 text-xs text-sky-100">
+                อีเมลที่ได้รับลิงก์รีเซ็ต:{" "}
+              <span className="ml-1 font-semibold text-white">
+                {email || "ไม่พบอีเมลในลิงก์รีเซ็ต"}
+              </span>
+            </p>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="mb-4 grid grid-cols-2 gap-2 rounded-full bg-white/10 p-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("request")
-                setError(null)
-                setNotice(null)
-              }}
-              className={cn(
-                "rounded-full px-3 py-2 text-xs font-semibold transition",
-                mode === "request"
-                  ? "bg-sky-500 text-white"
-                  : "text-white/70 hover:text-white",
-              )}
-            >
-              ขออีเมลรีเซ็ต
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("reset")
-                setError(null)
-                setNotice(null)
-              }}
-              className={cn(
-                "rounded-full px-3 py-2 text-xs font-semibold transition",
-                mode === "reset"
-                  ? "bg-sky-500 text-white"
-                  : "text-white/70 hover:text-white",
-              )}
-            >
-              ตั้งรหัสใหม่
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-5">
             <FieldGroup className="space-y-2">
-              {mode === "request" ? (
+              {!isResetFlow ? (
                 <Field>
                   <FieldLabel htmlFor="email" className="text-xs text-white/70">
                     อีเมล
@@ -228,19 +203,6 @@ export function ForgotPasswordForm({
                 </Field>
               ) : (
                 <>
-                  <Field>
-                    <FieldLabel htmlFor="reset-email" className="text-xs text-white/70">
-                      อีเมล
-                    </FieldLabel>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      value={email}
-                      disabled
-                      readOnly
-                      className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
-                    />
-                  </Field>
                   <Field>
                     <FieldLabel htmlFor="new-password" className="text-xs text-white/70">
                       รหัสผ่านใหม่
@@ -338,7 +300,7 @@ export function ForgotPasswordForm({
                 >
                   {isLoading
                     ? "กำลังดำเนินการ..."
-                    : mode === "request"
+                    : !isResetFlow
                       ? "ส่งลิงก์รีเซ็ต"
                       : "บันทึกรหัสผ่านใหม่"}
                 </Button>
@@ -348,10 +310,10 @@ export function ForgotPasswordForm({
 
           <div className="mt-4 text-center">
             <Link
-              href="/"
+              href={isResetFlow ? "/forgot-password" : "/"}
               className="text-xs font-semibold text-sky-200 hover:text-white"
             >
-              กลับไปหน้าเข้าสู่ระบบ
+              {isResetFlow ? "กลับไปหน้าขอรีเซ็ต" : "กลับไปหน้าเข้าสู่ระบบ"}
             </Link>
           </div>
         </CardContent>

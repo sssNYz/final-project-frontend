@@ -1,7 +1,7 @@
 import { ForgotPasswordForm } from "@/components/forgot-password-form"
 
-// หน้า /forgot-password สำหรับขอรีเซ็ตรหัสผ่าน
-export default function ForgotPasswordPage() {
+// หน้า /forgot-password/reset สำหรับตั้งรหัสผ่านใหม่
+export default function ResetPasswordPage() {
   return (
     <div className="relative min-h-svh w-full overflow-hidden bg-sky-50 text-slate-900">
       <div className="absolute inset-0 bg-[url('/assets/login-bg.png')] bg-cover bg-center" />
@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 flex min-h-svh w-full items-center justify-center px-6 py-10">
         <div className="w-full max-w-sm">
-          <ForgotPasswordForm flow="request" />
+          <ForgotPasswordForm flow="reset" />
         </div>
       </div>
     </div>
