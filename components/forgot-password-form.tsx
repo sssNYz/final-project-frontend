@@ -141,7 +141,7 @@ export function ForgotPasswordForm({
         if (typeof window !== "undefined") {
           window.sessionStorage.setItem(forgotEmailStorageKey, email)
         }
-        setNotice("A password reset link has been sent to your email.")
+        setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านเรียบร้อยแล้ว กรุณาตรวจสอบอีเมลของคุณ")
         return
       }
 
