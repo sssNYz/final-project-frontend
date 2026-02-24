@@ -20,6 +20,7 @@ export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const defaultRedirectTo = "https://admin.medi-buddy.xyz/forgot-password"
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -39,9 +40,7 @@ export function ForgotPasswordForm({
       setIsLoading(true)
       const redirectTo =
         process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
-        (typeof window !== "undefined"
-          ? `${window.location.origin}/forgot-password`
-          : "https://admin.medi-buddy.xyz/forgot-password")
+        defaultRedirectTo
 
       const res = await apiFetch("/api/auth/v2/forgot-password/request", {
         method: "POST",
@@ -50,10 +49,17 @@ export function ForgotPasswordForm({
         skipAuth: true,
         skipAuthRedirect: true,
       })
+      // ลอง parse JSON แต่ถ้าไม่สำเร็จให้เป็น null แทน เพื่อป้องกัน error ในกรณีที่ response ไม่ใช่ JSON
       const data = await res.json().catch(() => null)
       if (!res.ok) {
+        const backendMessage =
+          (data &&
+            ((data.error as string | undefined) ||
+              (data.message as string | undefined) ||
+              (data.detail as string | undefined))) ||
+          null
         setError(
-          (data && (data.error as string | undefined)) ||
+          backendMessage ||
             "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้",
         )
         return
