@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Pridi } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { AlertProvider } from "@/components/ui/alert-modal"
@@ -9,6 +10,20 @@ export const metadata: Metadata = {
   description: "Administration panel for MediBuddy",
 }
 
+const myfontSans = Pridi({
+  subsets: ["thai", "latin"],
+  weight: ["200", "300", "400", "500", "600", "700"],
+  variable: "--font-app-sans",
+  display: "swap",
+})
+
+const myfontMono = Pridi({
+  subsets: ["thai", "latin"],
+  weight: ["200", "300", "400", "500", "600", "700"],
+  variable: "--font-mono",
+  display: "swap",
+})
+
 // Layout หลักของแอป ใช้ห่อทุกหน้าของ Next.js
 export default function RootLayout({
   children,
@@ -18,7 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className="font-sans antialiased bg-background text-foreground"
+        className=
+        {`${myfontSans.className}
+          ${myfontMono.variable}
+        antialiased bg-background text-foreground`}
       >
         <AlertProvider>
           <AuthRefresh />
