@@ -7,7 +7,7 @@ import { apiFetch, handleUnauthorized } from "@/lib/apiClient"
 import { getLoggedInUserEmail } from "@/lib/authUser"
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000
-const PUBLIC_PATHS = new Set(["/", "/forgot-password", "/reset", "/otp"])
+const PUBLIC_PATHS = new Set(["/", "/forgot-password", "/reset"])
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.has(pathname)

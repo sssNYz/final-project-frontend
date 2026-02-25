@@ -24,9 +24,6 @@ export default function Page() {
             />
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">
-              MediBuddy
-            </div>
             <h1 className="text-4xl font-extrabold tracking-wide text-sky-500 drop-shadow-sm sm:text-5xl">
               MEDICINE ADMIN
             </h1>

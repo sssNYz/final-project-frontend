@@ -154,10 +154,8 @@ export function LoginForm({
                   </button>
                 </div>
                 <div className="mt-2 flex justify-end">
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs font-semibold text-sky-200 hover:text-white"
-                  >
+                  <Link href="/forgot-password"
+                    className="text-xs font-semibold text-sky-200 hover:text-white">
                     ลืมรหัสผ่าน?
                   </Link>
                 </div>
