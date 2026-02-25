@@ -76,7 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="flex items-center gap-2">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/40">
                     <Image
-                      src="/assets/Icon_MediBuddy_v2.png"
+                      src="/assets/Icon_MediBuddy_new.png"
                       alt="MediBuddy"
                       width={26}
                       height={26}
