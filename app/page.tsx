@@ -3,6 +3,7 @@ import Image from "next/image"
 import { LoginForm } from "@/components/login-form"
 
 // หน้าแรกของระบบ แสดงฟอร์มล็อกอินหลัก
+// เรียกใช้ฟังก์ชัน LoginForm ที่เป็นคอมโพเนนต์สำหรับฟอร์มล็อกอิน
 export default function Page() {
   return (
     <div className="relative min-h-svh w-full overflow-hidden bg-sky-50 text-slate-900">
