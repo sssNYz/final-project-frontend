@@ -16,7 +16,7 @@ export default function Page() {
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex h-60 w-60 items-center justify-center rounded-full bg-white/85 shadow-xl ring-2 ring-white/70">
             <Image
-              src="/assets/Icon_MediBuddy_v2.png"
+              src="/assets/Icon_MediBuddy_new.png"
               alt="MediBuddy"
               width={1000}
               height={1000}
