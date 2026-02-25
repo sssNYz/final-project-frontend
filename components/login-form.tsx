@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
-
+// ฟอร์มล็อกอินสำหรับแอดมิน โดยมีการจัดการสถานะของฟอร์มและการเรียก API เพื่อเข้าสู่ระบบ
+import { setLoggedInUserEmail } from "@/lib/authUser"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -66,11 +67,14 @@ export function LoginForm({
       if (refreshToken) {
         setRefreshToken(refreshToken)
       }
+      // เก็บอีเมลของผู้ใช้ใน sessionStorage เพื่อใช้ในการตรวจสอบสถานะการเข้าสู่ระบบ
       if (typeof window !== "undefined") {
         const userEmail =
           (data?.user?.email as string | undefined) ?? email
         if (userEmail) {
           window.sessionStorage.setItem("currentUserEmail", userEmail)
+          // นอกจากนี้ยังเก็บในคุกกี้หรือที่อื่นๆ ตามที่ระบบของคุณต้องการ
+          setLoggedInUserEmail(userEmail)
         }
       }
 // นำผู้ใช้ไปยังหน้า Dashboard

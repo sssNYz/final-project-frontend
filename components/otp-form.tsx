@@ -4,6 +4,7 @@ import { apiFetch, setRefreshToken } from "@/lib/apiClient"
 import { useState, useEffect, SetStateAction } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { ShieldCheck } from "lucide-react"
+import { setLoggedInUserEmail } from "@/lib/authUser"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -97,6 +98,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
             (data?.user?.email as string | undefined) ?? email
           if (userEmail) {
             window.sessionStorage.setItem("currentUserEmail", userEmail)
+            setLoggedInUserEmail(userEmail)
           }
         }
       }
