@@ -1,12 +1,19 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 
-import { apiFetch } from "@/lib/apiClient"
+import { apiFetch, handleUnauthorized } from "@/lib/apiClient"
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000
+const PUBLIC_PATHS = new Set(["/", "/forgot-password", "/reset", "/otp"])
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.has(pathname)
+}
 
 export function AuthRefresh() {
+  const pathname = usePathname()
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -14,11 +21,14 @@ export function AuthRefresh() {
 
     const refresh = async () => {
       if (cancelled) return
-      await apiFetch("/api/auth/v2/refresh", {
+      const res = await apiFetch("/api/auth/v2/refresh", {
         method: "POST",
         skipAuth: true,
         skipAuthRedirect: true,
       })
+      if (!res.ok && !isPublicPath(pathname)) {
+        handleUnauthorized()
+      }
     }
 
     void refresh()
@@ -44,7 +54,7 @@ export function AuthRefresh() {
       window.removeEventListener("focus", refresh)
       document.removeEventListener("visibilitychange", handleVisibility)
     }
-  }, [])
+  }, [pathname])
 
   return null
 }
