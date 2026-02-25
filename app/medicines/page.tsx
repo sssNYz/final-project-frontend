@@ -522,7 +522,7 @@ export default function MedicinesPage() {
       "รายการนี้"
     const confirmed = await confirm({
       variant: "warning",
-      title: "ยืนยันการเปลี่ยนสถานะการใช้งาน",
+      title: "ยืนยันเปลี่ยนสถานะการใช้งาน",
       message: `ต้องการ${nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน"
         } ${label} หรือไม่?`,
       confirmText: nextStatus ? "เปิดใช้งาน" : "ปิดใช้งาน",

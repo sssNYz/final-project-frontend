@@ -80,15 +80,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       alt="MediBuddy"
                       width={26}
                       height={26}
-                      className="h-5 w-5 rounded-full object-contain"
+                      className="h-10 w-10 rounded-full object-contain"
                     />
                   </span>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold leading-tight">
                       MediBuddy Admin
-                    </span>
-                    <span className="text-[11px] text-slate-200/80">
-                      Medication Management Console
                     </span>
                   </div>
                 </div>
