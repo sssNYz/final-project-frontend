@@ -61,7 +61,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="offcanvas"
-      className="border-r border-slate-200 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-slate-100"
+      className="border-r border-slate-200 bg-gradient-to-b from-slate-950 via-slate-800 to-slate-900 text-slate-100"
       {...props}
     >
       <SidebarHeader className="px-3 py-3">
@@ -74,13 +74,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="/dashboard" aria-label="กลับไปหน้า Dashboard">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/90 bg-white">
                     <Image
                       src="/assets/Icon_MediBuddy_v2.png"
                       alt="MediBuddy"
                       width={26}
                       height={26}
-                      className="h-6 w-6 object-contain"
+                      className="h-5 w-5 rounded-full object-contain"
                     />
                   </span>
                   <div className="flex flex-col">
@@ -103,4 +103,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-

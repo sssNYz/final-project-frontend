@@ -14,13 +14,13 @@ export default function Page() {
 
       <div className="relative z-10 mx-auto grid min-h-svh w-full max-w-6xl items-center gap-12 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-60 w-60 items-center justify-center">
+          <div className="flex h-56 w-56 items-center justify-center rounded-full border border-white/90 bg-white">
             <Image
               src="/assets/Icon_MediBuddy_v2.png"
               alt="MediBuddy"
               width={1000}
               height={1000}
-              className="h-60 w-60 object-contain"
+              className="h-60 w-60 rounded-full object-contain"
             />
           </div>
           <div className="space-y-2">
