@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
 import { apiFetch, handleUnauthorized } from "@/lib/apiClient"
+import { getLoggedInUserEmail } from "@/lib/authUser"
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000
 const PUBLIC_PATHS = new Set(["/", "/forgot-password", "/reset", "/otp"])
@@ -21,6 +22,10 @@ export function AuthRefresh() {
 
     const refresh = async () => {
       if (cancelled) return
+      if (!isPublicPath(pathname) && !getLoggedInUserEmail()) {
+        handleUnauthorized()
+        return
+      }
       const res = await apiFetch("/api/auth/v2/refresh", {
         method: "POST",
         skipAuth: true,
