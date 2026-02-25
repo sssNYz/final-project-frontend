@@ -1,5 +1,3 @@
-import { clearLoggedInUserEmail } from "@/lib/authUser"
-
 /**
  * Get the base URL for API calls
  * Uses environment variable if set, otherwise uses same origin
@@ -116,7 +114,6 @@ async function performLogout() {
 export function handleUnauthorized() {
   if (typeof window === "undefined") return
   clearAuthCache()
-  clearLoggedInUserEmail()
   window.sessionStorage.removeItem("currentUserEmail")
   window.sessionStorage.removeItem("pendingRegister")
   void performLogout()

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 
-import { setLoggedInUserEmail } from "@/lib/authUser"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -72,7 +71,6 @@ export function LoginForm({
           (data?.user?.email as string | undefined) ?? email
         if (userEmail) {
           window.sessionStorage.setItem("currentUserEmail", userEmail)
-          setLoggedInUserEmail(userEmail)
         }
       }
 // นำผู้ใช้ไปยังหน้า Dashboard

@@ -4,13 +4,18 @@ import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
 import { apiFetch, handleUnauthorized } from "@/lib/apiClient"
-import { getLoggedInUserEmail } from "@/lib/authUser"
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000
 const PUBLIC_PATHS = new Set(["/", "/forgot-password", "/reset", "/otp"])
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.has(pathname)
+}
+
+function hasActiveClientSession(): boolean {
+  if (typeof window === "undefined") return false
+  const sessionEmail = window.sessionStorage.getItem("currentUserEmail")
+  return Boolean(sessionEmail?.trim())
 }
 
 export function AuthRefresh() {
@@ -22,7 +27,7 @@ export function AuthRefresh() {
 
     const refresh = async () => {
       if (cancelled) return
-      if (!isPublicPath(pathname) && !getLoggedInUserEmail()) {
+      if (!isPublicPath(pathname) && !hasActiveClientSession()) {
         handleUnauthorized()
         return
       }

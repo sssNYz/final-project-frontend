@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
 
 import { apiFetch, clearAuthCache } from "@/lib/apiClient"
-import { clearLoggedInUserEmail } from "@/lib/authUser"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -69,7 +68,6 @@ export function NavUser({
 
   function handleLogout() {
     clearAuthCache()
-    clearLoggedInUserEmail()
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem("currentUserEmail")
       window.sessionStorage.removeItem("pendingRegister")
