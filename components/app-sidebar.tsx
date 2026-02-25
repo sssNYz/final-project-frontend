@@ -74,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="/dashboard" aria-label="กลับไปหน้า Dashboard">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/40">
+                  <span className="flex h-8 w-8 items-center justify-center">
                     <Image
                       src="/assets/Icon_MediBuddy_v2.png"
                       alt="MediBuddy"
@@ -103,5 +103,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-
 
