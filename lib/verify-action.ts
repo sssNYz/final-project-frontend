@@ -122,8 +122,8 @@ export async function promptPassword(): Promise<string | null> {
           isHidden ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน",
         )
         if (eyeOpen && eyeClosed) {
-          eyeOpen.style.display = isHidden ? "none" : "block"
-          eyeClosed.style.display = isHidden ? "block" : "none"
+          eyeOpen.style.display = isHidden ? "block" : "none"
+          eyeClosed.style.display = isHidden ? "none" : "block"
         }
       })
     },
