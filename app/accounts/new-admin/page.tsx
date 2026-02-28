@@ -54,7 +54,13 @@ function NewAdminPageContent() {
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem("pendingRegister")
     }
-    router.replace("/accounts/new-admin")
+    void Swal.fire({
+      icon: "success",
+      title: "เพิ่มบัญชีผู้ดูแลระบบสำเร็จ",
+      text: "เพิ่มสำเร็จ",
+    }).then(() => {
+      router.replace("/accounts/new-admin")
+    })
   }, [router, successFlag])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

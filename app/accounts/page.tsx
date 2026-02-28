@@ -294,11 +294,21 @@ export default function AccountsPage() {
           userIds: [validId],
           confirm: "CONFIRM",
         }),
+        skipAuthRedirect: true,
       })
 
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setLoadError("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่")
+          await Swal.fire({
+            icon: "warning",
+            title: "เซสชันหมดอายุ",
+            text: "กรุณาเข้าสู่ระบบใหม่",
+          })
+          return
+        }
         setLoadError(
           (data && (data.error as string | undefined)) ||
             "ไม่สามารถลบบัญชีผู้ใช้งานได้",

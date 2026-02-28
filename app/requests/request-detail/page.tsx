@@ -314,7 +314,8 @@ function RequestDetailPageContent() {
       return false
     }
   }
-
+  
+// ตอบรับคำร้องหรือปฏิเสธคำร้องจากหน้ารายละเอียด
   async function resolveFromDetail(status: Exclude<RequestStatus, "PENDING">) {
     if (!detailRequest) return
     await updateStatus(detailRequest.id, status)
