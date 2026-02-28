@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { DashboardPageHeader } from "@/components/dashboard-page-header"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
+import { useAlert } from "@/components/ui/alert-modal"
 import {
   SidebarInset,
   SidebarProvider,
@@ -165,6 +166,7 @@ function RequestDetailPageContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
+  const { alert, confirm } = useAlert()
 
   useEffect(() => {
     async function fetchRequests() {
@@ -318,7 +320,30 @@ function RequestDetailPageContent() {
 // ตอบรับคำร้องหรือปฏิเสธคำร้องจากหน้ารายละเอียด
   async function resolveFromDetail(status: Exclude<RequestStatus, "PENDING">) {
     if (!detailRequest) return
-    await updateStatus(detailRequest.id, status)
+    const confirmed = await confirm({
+      variant: status === "DONE" ? "info" : "warning",
+      title: status === "DONE" ? "ยืนยันการดำเนินการ" : "ยืนยันการปฏิเสธ",
+      message:
+        status === "DONE"
+          ? "ยืนยันว่าจะดำเนินการคำร้องนี้หรือไม่?"
+          : "ยืนยันว่าจะปฏิเสธคำร้องนี้หรือไม่?",
+      confirmText: status === "DONE" ? "ยืนยัน" : "ปฏิเสธ",
+      cancelText: "ยกเลิก",
+      confirmButtonColor: status === "DONE" ? "#10b981" : "#ef4444",
+    })
+    if (!confirmed) return
+
+    const ok = await updateStatus(detailRequest.id, status)
+    if (ok) {
+      await alert({
+        variant: "success",
+        title: "สำเร็จ",
+        message:
+          status === "DONE"
+            ? "ตอบรับคำร้องสำเร็จ (ดำเนินการแล้ว)"
+            : "ปฏิเสธคำร้องเรียบร้อยแล้ว",
+      })
+    }
   }
 
   return (
@@ -353,7 +378,7 @@ function RequestDetailPageContent() {
             {loadError && <p className="text-sm text-red-500">{loadError}</p>}
 
             {isLoading && !detailRequest && (
-              <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-900/10 bg-gradient-to-r from-slate-900 via-sky-800 to-sky-500 p-6 shadow-sm text-white">
                 <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
                 <div className="mt-4 h-20 w-full animate-pulse rounded bg-slate-100" />
               </div>
@@ -361,7 +386,7 @@ function RequestDetailPageContent() {
 
             {detailRequest ? (
               <div className="flex justify-center">
-                <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="w-full max-w-3xl rounded-3xl border border-slate-900/10 bg-gradient-to-r from-slate-900 via-sky-800 to-sky-500 p-6 shadow-sm text-white">
                   <div className="mb-4 flex justify-center">
                     <span
                       className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px] font-semibold ${STATUS_BADGE_CLASSES[detailRequest.status]}`}
@@ -372,18 +397,18 @@ function RequestDetailPageContent() {
                       </span>
                     </span>
                   </div>
-                  <div className="space-y-3 bg-slate-50/80 p-4 text-xs">
+                  <div className="space-y-3 rounded-2xl bg-white/10 p-4 text-xs">
                     <div className="space-y-2">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <div className="font-semibold">อีเมลผู้ส่งคำร้อง</div>
-                          <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                          <div className="bg-white/10 px-4 py-2 text-[11px] font-medium text-white shadow-sm">
                             {detailRequest.email}
                           </div>
                         </div>
                         <div className="space-y-1">
                           <div className="font-semibold">วันที่ส่งคำร้อง</div>
-                          <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                          <div className="bg-white/10 px-4 py-2 text-[11px] font-medium text-white shadow-sm">
                             {formatDisplayDate(detailRequest.submittedDate)}
                           </div>
                         </div>
@@ -391,25 +416,25 @@ function RequestDetailPageContent() {
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <div className="font-semibold">ชื่อหัวข้อ</div>
-                          <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                          <div className="bg-white/10 px-4 py-2 text-[11px] font-medium text-white shadow-sm">
                             {detailRequest.subject || "-"}
                           </div>
                         </div>
                         <div className="space-y-1">
                           <div className="font-semibold">หมวดหมู่คำร้อง</div>
-                          <div className="bg-white px-4 py-2 text-[11px] font-medium text-slate-800 shadow-sm">
+                          <div className="bg-white/10 px-4 py-2 text-[11px] font-medium text-white shadow-sm">
                             {CATEGORY_LABELS[detailRequest.category]}
                           </div>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="font-semibold">เนื้อหาคำร้อง</div>
-                        <div className="bg-white px-4 py-3 text-[11px] text-slate-800 shadow-sm">
+                        <div className="bg-white/10 px-4 py-3 text-[11px] text-white shadow-sm">
                           {detailRequest.content || "-"}
                         </div>
                       </div>
                     </div>
-                    <div className="flex h-40 items-center justify-center rounded-xl bg-white">
+                    <div className="flex h-40 items-center justify-center rounded-xl bg-white/10">
                       <button
                         type="button"
                         onClick={() =>
