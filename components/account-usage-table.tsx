@@ -29,7 +29,7 @@ type Props = {
 // ตารางสรุปปริมาณการใช้งานต่อบัญชี พร้อมแบ่งหน้าและเลือกหลายรายการได้
 export function AccountUsageTable({
   rows,
-  pageSize = 10,
+  pageSize = 6,
   selectable = false,
   onDeleteSelected,
   deleteDisabled = false,
@@ -128,7 +128,7 @@ export function AccountUsageTable({
               จำนวนบัญชีผู้ใช้ย่อย
             </TableHead>
             <TableHead className="px-4 py-3 text-center text-xs font-semibold text-white">
-              จำนวนรายการใช้ยา
+              ประวัติการรับประทานยา
             </TableHead>
           </TableRow>
         </TableHeader>

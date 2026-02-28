@@ -66,8 +66,8 @@ const ROLE_LABELS: Record<AccountRole, string> = {
   admin: "ผู้ดูแลระบบ",
   member: "สมาชิก",
 }
-
-const PAGE_SIZE = 10
+// จำนวนรายการต่อหน้าในตารางบัญชีผู้ใช้งาน
+const PAGE_SIZE = 6
 
 // หน้า Dashboard > บัญชีผู้ใช้งาน
 // แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ

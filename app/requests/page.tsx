@@ -81,8 +81,8 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
   ADD_MEDICINE: "คำร้องขอเพิ่มยา",
   OTHER: "อื่นๆ",
 }
-
-const PAGE_SIZE = 5
+// จำนวนรายการต่อหน้าในตารางคำร้องจากผู้ใช้
+const PAGE_SIZE = 6
 
 const initialRequests: RequestRow[] = []
 
