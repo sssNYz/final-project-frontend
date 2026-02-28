@@ -362,12 +362,6 @@ export default function MedicinesPage() {
         })
       })
 
-      medicines.forEach((item) => {
-        if (!merged.has(item.id)) {
-          merged.set(item.id, item)
-        }
-      })
-
       const mergedList = Array.from(merged.values())
 
       setMedicines(mergedList)
