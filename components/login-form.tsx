@@ -3,7 +3,7 @@ import { apiFetch, setRefreshToken } from "@/lib/apiClient"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Lock, User } from "lucide-react"
 // ฟอร์มล็อกอินสำหรับแอดมิน โดยมีการจัดการสถานะของฟอร์มและการเรียก API เพื่อเข้าสู่ระบบ
 import { setLoggedInUserEmail } from "@/lib/authUser"
 import { cn } from "@/lib/utils"
@@ -107,16 +107,19 @@ export function LoginForm({
                 <FieldLabel htmlFor="email" className="text-xs text-white/70">
                   อีเมล
                 </FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="กรอกอีเมล"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  className="h-11 rounded-full border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
-                />
+                <div className="relative">
+                  <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="กรอกอีเมล"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pl-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                  />
+                </div>
               </Field>
               <Field>
                 <FieldLabel
@@ -126,6 +129,7 @@ export function LoginForm({
                   รหัสผ่าน
                 </FieldLabel>
                 <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -134,7 +138,7 @@ export function LoginForm({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pr-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
+                    className="h-11 rounded-full border border-white/15 bg-white/10 px-4 pl-11 pr-11 text-sm text-white placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-sky-400"
                   />
                   <button
                     type="button"

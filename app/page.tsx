@@ -26,11 +26,11 @@ export default function Page() {
           </div>
           <div className="space-y-2">
             <h1 className="text-4xl font-extrabold tracking-wide text-sky-500 drop-shadow-sm sm:text-5xl">
-              MEDICINE ADMIN
+              MEDIBUDDY ADMIN
             </h1>
           </div>
           <p className="max-w-xl text-sm text-slate-600 sm:text-base">
-            ระบบจัดการข้อมูลยาและผู้ใช้งาน สำหรับแอดมินของ MediBuddy
+            ระบบจัดการข้อมูลยาและผู้ใช้งาน สำหรับผู้ดูแลระบบของ MediBuddy
           </p>
         </div>
 
