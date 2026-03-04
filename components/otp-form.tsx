@@ -40,12 +40,21 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
 
   useEffect(() => {
     if (!email) {
       router.push("/")
     }
   }, [email, router])
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = window.setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [resendCooldown])
 
   // ตรวจสอบรูปแบบ OTP แล้วเรียก API ยืนยัน OTP
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -85,7 +94,44 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         setError(data?.error || "ยืนยันรหัสไม่สำเร็จ")
         return
       }
-      if (!isAdminFlow) {
+      if (isAdminFlow) {
+        if (typeof window !== "undefined") {
+          const pending = window.sessionStorage.getItem("pendingRegister")
+          let payload:
+            | { email?: string; password?: string }
+            | null = null
+          try {
+            payload = JSON.parse(pending ?? "null") as {
+              email?: string
+              password?: string
+            } | null
+          } catch {
+            payload = null
+          }
+          if (!payload?.email || !payload?.password || payload.email !== email) {
+            setError("ไม่พบข้อมูลสำหรับสร้างบัญชีผู้ดูแลระบบ")
+            return
+          }
+          const registerRes = await apiFetch("/api/admin/v2/admins", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: payload.email,
+              password: payload.password,
+            }),
+            skipAuth: true,
+            skipAuthRedirect: true,
+          })
+          const registerData = await registerRes.json().catch(() => null)
+          if (!registerRes.ok) {
+            setError(
+              registerData?.error ||
+                "ไม่สามารถสร้างบัญชีผู้ดูแลระบบได้",
+            )
+            return
+          }
+        }
+      } else {
         const refreshToken =
           (data?.refreshToken as string | undefined) ??
           (data?.tokens?.refreshToken as string | undefined) ??
@@ -128,50 +174,31 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       return
     }
 
-    const pending = window.sessionStorage.getItem("pendingRegister")
-    if (!pending) {
-      setError("ไม่พบข้อมูลสำหรับส่งรหัสยืนยันอีกครั้ง")
-      return
-    }
-
-    let payload: { email?: string; password?: string } | null = null
-    try {
-      payload = JSON.parse(pending) as { email?: string; password?: string }
-    } catch {
-      payload = null
-    }
-
-    if (!payload?.email || !payload?.password) {
-      setError("ไม่พบข้อมูลสำหรับส่งรหัสยืนยันอีกครั้ง")
-      return
-    }
-
-    if (payload.email !== email) {
-      setError("อีเมลสำหรับส่งรหัสยืนยันไม่ตรงกัน")
-      return
-    }
-
     try {
       setIsResending(true)
-      const registerEndpoint = isAdminFlow
-        ? "/api/admin/v2/admins"
-        : "/api/auth/v2/register"
-      const res = await apiFetch(registerEndpoint, {
+      const res = await apiFetch("/api/auth/v2/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: payload.email,
-          password: payload.password,
+          email,
         }),
         skipAuth: true,
         skipAuthRedirect: true,
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        setError(data?.error || "ส่งรหัสยืนยันอีกครั้งไม่สำเร็จ")
+        const errorCode = String(data?.error ?? "")
+          .toLowerCase()
+          .trim()
+        const errorMessage =
+          errorCode === "email_exists"
+            ? "อีเมลนี้มีอยู่แล้วในระบบ"
+            : data?.error || "ส่งรหัสยืนยันอีกครั้งไม่สำเร็จ"
+        setError(errorMessage)
         return
       }
       setNotice("ส่งรหัสยืนยันใหม่แล้ว โปรดตรวจสอบอีเมล")
+      setResendCooldown(60)
     } catch {
       setError("เกิดข้อผิดพลาดในการส่งรหัสยืนยันอีกครั้ง")
     } finally {
@@ -228,11 +255,20 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
                   <button
                     type="button"
                     onClick={handleResend}
-                    disabled={isResending}
+                    disabled={isResending || resendCooldown > 0}
                     className="font-semibold text-sky-300 hover:text-sky-200 disabled:cursor-not-allowed disabled:text-sky-300/60"
                   >
-                    {isResending ? "กำลังส่ง..." : "ส่งอีกครั้ง"}
+                    {isResending
+                      ? "กำลังส่ง..."
+                      : resendCooldown > 0
+                        ? `ส่งอีกครั้งได้ใน ${resendCooldown} วินาที`
+                        : "ส่งอีกครั้ง"}
                   </button>
+                  {resendCooldown > 0 && (
+                    <span className="mt-1 block text-[11px] text-white/50">
+                      สามารถส่งรหัสใหม่ได้อีกครั้งใน {resendCooldown} วินาที
+                    </span>
+                  )}
                 </FieldDescription>
               </Field>
 

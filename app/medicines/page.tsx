@@ -190,6 +190,9 @@ export default function MedicinesPage() {
   const [usageFilterInput, setUsageFilterInput] =
     useState<"all" | UsageType>("all")
   const [searchTermInput, setSearchTermInput] = useState("")
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE)
   const [currentPage, setCurrentPage] = useState(1)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<FormState>(emptyForm)
@@ -291,19 +294,45 @@ export default function MedicinesPage() {
   }
 
   // โหลดรายการยาจริงจาก API /api/admin/v1/medicine/list
-  async function reloadMedicines() {
+  async function reloadMedicines(params?: {
+    usage?: "all" | UsageType
+    search?: string
+    page?: number
+    size?: number
+  }) {
     try {
       setIsLoading(true)
       setLoadError(null)
       statusRequestedRef.current.clear()
 
-
       const headers: Record<string, string> = {}
 
-      // ดึงรายการยาทั้งหมด (pageSize=1000) รวมถึงยาที่ถูกลบแล้ว (includeDeleted=true)
+      const usage = params?.usage ?? usageFilter
+      const search = params?.search ?? searchTerm
+      const page = params?.page ?? currentPage
+      const size = params?.size ?? pageSize
+
+      const queryParams = new URLSearchParams()
+      queryParams.set("page", String(page))
+      queryParams.set("pageSize", String(size))
+      queryParams.set("includeDeleted", "true")
+      if (usage !== "all") {
+        queryParams.set(
+          "mediType",
+          usage === "topical" ? "TOPICAL" : "ORAL",
+        )
+      }
+      if (search.trim()) {
+        queryParams.set("search", search.trim())
+      }
+      const query = queryParams.toString()
+
+      // ดึงรายการยาตามเงื่อนไข (includeDeleted=true)
       const res = await apiFetch(
-        "/api/admin/v1/medicine/list?page=1&pageSize=1000&includeDeleted=true",
-        { headers },
+        query
+          ? `/api/admin/v1/medicine/list?${query}`
+          : "/api/admin/v1/medicine/list",
+        { headers, cache: "no-store" },
       )
 
       const data = await res.json().catch(() => null)
@@ -317,7 +346,14 @@ export default function MedicinesPage() {
         return
       }
 
-      const items = (data?.items ?? []) as {
+      const meta = (data?.meta ?? {}) as {
+        page?: number
+        pageSize?: number
+        total?: number
+        totalPages?: number
+      }
+
+      const items = (data?.items ?? data?.accounts ?? data?.data ?? []) as {
         mediId: number
         mediThName: string
         mediEnName: string
@@ -345,6 +381,23 @@ export default function MedicinesPage() {
         }
       })
 
+      if (typeof meta.total === "number") {
+        setTotalCount(meta.total)
+      } else {
+        setTotalCount(next.length)
+      }
+      if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+        setTotalPages(meta.totalPages)
+        if (page > meta.totalPages) {
+          setCurrentPage(meta.totalPages)
+        }
+      } else {
+        setTotalPages(1)
+      }
+      if (typeof meta.pageSize === "number" && meta.pageSize > 0) {
+        setPageSize(meta.pageSize)
+      }
+
       const previousById = new Map(
         medicines.map((medicine) => [medicine.id, medicine]),
       )
@@ -365,7 +418,7 @@ export default function MedicinesPage() {
       const mergedList = Array.from(merged.values())
 
       setMedicines(mergedList)
-      setCurrentPage(1)
+      setCurrentPage(page)
       await loadAllStatuses(
         mergedList.map((item) => item.id),
         headers,
@@ -383,36 +436,8 @@ export default function MedicinesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // กรองรายการยาตามประเภทการใช้ (oral/topical) และคำค้นหา
-  const filteredMedicines = useMemo(() => {
-    const search = searchTerm.trim().toLowerCase()
-
-    return medicines.filter((medicine) => {
-      const matchesUsage =
-        usageFilter === "all" || medicine.usageType === usageFilter
-
-      const matchesSearch =
-        search.length === 0 ||
-        medicine.genericNameEn.toLowerCase().includes(search) ||
-        medicine.genericNameTh.toLowerCase().includes(search) ||
-        medicine.brandName.toLowerCase().includes(search)
-
-      return matchesUsage && matchesSearch
-    })
-  }, [medicines, usageFilter, searchTerm])
-
-  const { totalPages, safePage, paginatedMedicines } = useMemo(() => {
-    const total = Math.max(1, Math.ceil(filteredMedicines.length / PAGE_SIZE))
-    const page = Math.min(currentPage, total)
-    const startIndex = (page - 1) * PAGE_SIZE
-    const endIndex = startIndex + PAGE_SIZE
-
-    return {
-      totalPages: total,
-      safePage: page,
-      paginatedMedicines: filteredMedicines.slice(startIndex, endIndex),
-    }
-  }, [filteredMedicines, currentPage])
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedMedicines = medicines
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
@@ -502,6 +527,12 @@ export default function MedicinesPage() {
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
+    void reloadMedicines({
+      usage: usageFilter,
+      search: searchTerm,
+      page,
+      size: pageSize,
+    })
   }
   // สลับสถานะการใช้งานของยา (เปิด/ปิด)
   async function handleToggleStatus(id: string) {
@@ -983,9 +1014,17 @@ export default function MedicinesPage() {
                     type="button"
                     className="px-4"
                     onClick={() => {
-                      setUsageFilter(usageFilterInput)
-                      setSearchTerm(searchTermInput)
+                      const nextUsage = usageFilterInput
+                      const nextSearch = searchTermInput
+                      setUsageFilter(nextUsage)
+                      setSearchTerm(nextSearch)
                       setCurrentPage(1)
+                      void reloadMedicines({
+                        usage: nextUsage,
+                        search: nextSearch,
+                        page: 1,
+                        size: pageSize,
+                      })
                     }}
                   />
                 </div>
@@ -1301,7 +1340,7 @@ export default function MedicinesPage() {
                   <div className="text-xs font-semibold text-slate-700">
                     จำนวนรายการทั้งหมด{" "}
                     <span className="text-slate-900">
-                      {filteredMedicines.length}
+                      {totalCount}
                     </span>{" "}
                     รายการ
                   </div>

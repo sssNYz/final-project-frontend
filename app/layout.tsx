@@ -8,6 +8,10 @@ import { AuthRefresh } from "@/components/auth-refresh"
 export const metadata: Metadata = {
   title: "MediBuddy Admin",
   description: "Administration panel for MediBuddy",
+  icons: {
+    icon: "/assets/Icon_MediBuddy_v2.png",
+    apple: "/assets/Icon_MediBuddy_v2.png",
+  },
 }
 
 const myfontSans = Pridi({

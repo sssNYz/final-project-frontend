@@ -33,7 +33,7 @@ export async function promptPassword(): Promise<string | null> {
           class="swal2-input"
           placeholder="รหัสผ่าน"
           autocomplete="current-password"
-          style="margin: 0; padding-right: 2.75rem;"
+          style="margin: 0; padding-right: 3.5rem; height: 3rem; line-height: 3rem;"
         />
         <button
           type="button"
@@ -42,12 +42,15 @@ export async function promptPassword(): Promise<string | null> {
           aria-pressed="false"
           style="
             position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
+            right: 0.5rem;
+            top: 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transform: none;
             background: transparent;
             border: none;
-            padding: 0;
+            padding: 0 0.5rem;
             color: #64748b;
             cursor: pointer;
           "
@@ -113,18 +116,22 @@ export async function promptPassword(): Promise<string | null> {
       const eyeClosed = document.getElementById("eye-closed")
       if (!input || !toggle) return
       input.focus()
-      toggle.addEventListener("click", () => {
+      const updateEye = () => {
         const isHidden = input.type === "password"
-        input.type = isHidden ? "text" : "password"
-        toggle.setAttribute("aria-pressed", String(isHidden))
+        toggle.setAttribute("aria-pressed", String(!isHidden))
         toggle.setAttribute(
           "aria-label",
-          isHidden ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน",
+          isHidden ? "แสดงรหัสผ่าน" : "ซ่อนรหัสผ่าน",
         )
         if (eyeOpen && eyeClosed) {
-          eyeOpen.style.display = isHidden ? "block" : "none"
-          eyeClosed.style.display = isHidden ? "none" : "block"
+          eyeOpen.style.display = isHidden ? "none" : "block"
+          eyeClosed.style.display = isHidden ? "block" : "none"
         }
+      }
+      updateEye()
+      toggle.addEventListener("click", () => {
+        input.type = input.type === "password" ? "text" : "password"
+        updateEye()
       })
     },
   })

@@ -212,6 +212,9 @@ function RequestsPageContent() {
   const [fromDateInput, setFromDateInput] = useState<Date | undefined>(undefined)
   const [toDateInput, setToDateInput] = useState<Date | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE)
 
   useEffect(() => {
     async function fetchRequests() {
@@ -219,7 +222,30 @@ function RequestsPageContent() {
         setIsLoading(true)
         setLoadError(null)
 
-        const res = await apiFetch("/api/admin/v1/user-request/list")
+        const params = new URLSearchParams()
+        params.set("page", String(currentPage))
+        params.set("pageSize", String(pageSize))
+        if (categoryFilter !== "all") {
+          params.set("type", categoryFilter)
+        }
+        if (statusFilter !== "all") {
+          params.set("status", statusFilter)
+        }
+        if (searchEmail.trim()) {
+          params.set("search", searchEmail.trim())
+        }
+        if (fromDate) {
+          params.set("fromDate", fromDate.toISOString().slice(0, 10))
+        }
+        if (toDate) {
+          params.set("toDate", toDate.toISOString().slice(0, 10))
+        }
+        const query = params.toString()
+        const res = await apiFetch(
+          query
+            ? `/api/admin/v1/user-request/list?${query}`
+            : "/api/admin/v1/user-request/list",
+        )
         const data = await res.json().catch(() => null)
 
         if (!res.ok) {
@@ -233,6 +259,28 @@ function RequestsPageContent() {
         const items = (data?.requests ?? data?.items ?? data?.data ?? []) as Array<
           Record<string, unknown>
         >
+        const meta = (data?.meta ?? {}) as {
+          page?: number
+          pageSize?: number
+          total?: number
+          totalPages?: number
+        }
+        if (typeof meta.total === "number") {
+          setTotalCount(meta.total)
+        } else {
+          setTotalCount(items.length)
+        }
+        if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+          setTotalPages(meta.totalPages)
+          if (currentPage > meta.totalPages) {
+            setCurrentPage(meta.totalPages)
+          }
+        } else {
+          setTotalPages(1)
+        }
+        if (typeof meta.pageSize === "number" && meta.pageSize > 0) {
+          setPageSize(meta.pageSize)
+        }
 
         const mapped = items.map((item, index) => {
           const rawId =
@@ -311,95 +359,41 @@ function RequestsPageContent() {
     }
 
     fetchRequests()
-  }, [])
-
-  useEffect(() => {
-    if (!requests.length) return
-    if (fromDateInput || toDateInput) return
-
-    const timestamps = requests
-      .map((request) => new Date(request.submittedDate).getTime())
-      .filter((time) => !Number.isNaN(time))
-
-    if (!timestamps.length) return
-
-    const minTime = Math.min(...timestamps)
-    const maxTime = Math.max(...timestamps)
-
-    const minDate = new Date(minTime)
-    const maxDate = new Date(maxTime)
-
-    setFromDate(minDate)
-    setFromDateInput(minDate)
-    setToDate(maxDate)
-    setToDateInput(maxDate)
-  }, [requests, fromDateInput, toDateInput])
-
-  const baseFilteredRequests = useMemo(() => {
-    const search = searchEmail.trim().toLowerCase()
-
-    return requests.filter((request) => {
-      const matchesCategory =
-        categoryFilter === "all" || request.category === categoryFilter
-
-      const matchesSearch =
-        search.length === 0 || request.email.toLowerCase().includes(search)
-
-      const dateValue = new Date(request.submittedDate).getTime()
-      const afterFrom = fromDate
-        ? dateValue >=
-          new Date(fromDate.toISOString().slice(0, 10)).getTime()
-        : true
-      const beforeTo = toDate
-        ? dateValue <= new Date(toDate.toISOString().slice(0, 10)).getTime()
-        : true
-
-      return matchesCategory && matchesSearch && afterFrom && beforeTo
-    })
-  }, [requests, categoryFilter, searchEmail, fromDate, toDate])
-
-  const filteredRequests = useMemo(() => {
-    if (statusFilter === "all") return baseFilteredRequests
-    return baseFilteredRequests.filter(
-      (request) => request.status === statusFilter,
-    )
-  }, [baseFilteredRequests, statusFilter])
+  }, [
+    categoryFilter,
+    statusFilter,
+    searchEmail,
+    fromDate,
+    toDate,
+    currentPage,
+    pageSize,
+  ])
 
   const {
-    totalPages,
     safePage,
-    paginatedRequests,
     pendingCount,
     rejectedCount,
     completedCount,
-    totalCount,
   } = useMemo(() => {
-    const pending = baseFilteredRequests.filter(
+    const pending = requests.filter(
       (item) => item.status === "PENDING",
     ).length
-    const rejected = baseFilteredRequests.filter(
+    const rejected = requests.filter(
       (item) => item.status === "REJECTED",
     ).length
-    const completed = baseFilteredRequests.filter(
+    const completed = requests.filter(
       (item) => item.status === "DONE",
     ).length
-    const totalCount = baseFilteredRequests.length
 
-    const total = Math.max(1, Math.ceil(filteredRequests.length / PAGE_SIZE))
-    const page = Math.min(currentPage, total)
-    const startIndex = (page - 1) * PAGE_SIZE
-    const endIndex = startIndex + PAGE_SIZE
+    const page = Math.min(currentPage, totalPages)
 
     return {
-      totalPages: total,
       safePage: page,
-      paginatedRequests: filteredRequests.slice(startIndex, endIndex),
       pendingCount: pending,
       rejectedCount: rejected,
       completedCount: completed,
-      totalCount,
     }
-  }, [filteredRequests, baseFilteredRequests, currentPage])
+  }, [requests, currentPage, totalPages])
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
@@ -430,15 +424,16 @@ function RequestsPageContent() {
                   <div className="flex items-center text-[11px] text-slate-600">
                     <span className="w-28">หมวดหมู่</span>
                     <span className="w-28 pl-3">สถานะ</span>
-                    <span className="w-28 pl-3">อีเมล</span>
+                    <span className="w-28 pl-3">ค้นหา</span>
                     <span className="flex-1" />
                   </div>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
                     <Select
                       value={categoryFilterInput}
-                      onValueChange={(value) =>
-                        setCategoryFilterInput(value as "all" | RequestCategory)
-                      }
+                      onValueChange={(value) => {
+                        const next = value as "all" | RequestCategory
+                        setCategoryFilterInput(next)
+                      }}
                     >
                       <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                         <SelectValue placeholder="ทั้งหมด" />
@@ -455,9 +450,10 @@ function RequestsPageContent() {
                     <div className="h-5 w-px bg-slate-200" />
                     <Select
                       value={statusFilterInput}
-                      onValueChange={(value) =>
-                        setStatusFilterInput(value as "all" | RequestStatus)
-                      }
+                      onValueChange={(value) => {
+                        const next = value as "all" | RequestStatus
+                        setStatusFilterInput(next)
+                      }}
                     >
                       <SelectTrigger className="h-9 w-28 rounded-none border-none bg-sky-800 px-3 text-xs font-medium text-white shadow-none hover:bg-sky-700 [&>svg]:text-white">
                         <SelectValue placeholder="ทั้งหมด" />
@@ -472,7 +468,7 @@ function RequestsPageContent() {
                     <div className="h-5 w-px bg-slate-200" />
                     <Input
                       type="text"
-                      placeholder="อีเมลผู้ส่งคำร้อง"
+                      placeholder="ค้นหาในหัวข้อ/รายละเอียด"
                       value={searchEmailInput}
                       onChange={(event) =>
                         setSearchEmailInput(event.target.value)
@@ -549,16 +545,16 @@ function RequestsPageContent() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <SearchButton
-                    onClick={() => {
-                      setCategoryFilter(categoryFilterInput)
-                      setStatusFilter(statusFilterInput)
-                      setSearchEmail(searchEmailInput)
-                      setFromDate(fromDateInput)
-                      setToDate(toDateInput)
-                      setCurrentPage(1)
-                    }}
-                  />
+                    <SearchButton
+                      onClick={() => {
+                        setCategoryFilter(categoryFilterInput)
+                        setStatusFilter(statusFilterInput)
+                        setSearchEmail(searchEmailInput)
+                        setFromDate(fromDateInput)
+                        setToDate(toDateInput)
+                        setCurrentPage(1)
+                      }}
+                    />
                 </div>
               </div>
             </div>
@@ -568,11 +564,9 @@ function RequestsPageContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      setStatusFilter("all")
                       setStatusFilterInput("all")
-                      setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "all"}
+                    aria-pressed={statusFilterInput === "all"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "all"
                         ? "border-slate-800 bg-slate-800 text-white shadow-sm"
@@ -585,12 +579,11 @@ function RequestsPageContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      const next = statusFilter === "PENDING" ? "all" : "PENDING"
-                      setStatusFilter(next)
+                      const next =
+                        statusFilterInput === "PENDING" ? "all" : "PENDING"
                       setStatusFilterInput(next)
-                      setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "PENDING"}
+                    aria-pressed={statusFilterInput === "PENDING"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "PENDING"
                         ? "border-orange-700 bg-orange-600 text-white shadow-sm"
@@ -604,12 +597,10 @@ function RequestsPageContent() {
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilter === "REJECTED" ? "all" : "REJECTED"
-                      setStatusFilter(next)
+                        statusFilterInput === "REJECTED" ? "all" : "REJECTED"
                       setStatusFilterInput(next)
-                      setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "REJECTED"}
+                    aria-pressed={statusFilterInput === "REJECTED"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "REJECTED"
                         ? "border-red-700 bg-red-600 text-white shadow-sm"
@@ -622,12 +613,11 @@ function RequestsPageContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      const next = statusFilter === "DONE" ? "all" : "DONE"
-                      setStatusFilter(next)
+                      const next =
+                        statusFilterInput === "DONE" ? "all" : "DONE"
                       setStatusFilterInput(next)
-                      setCurrentPage(1)
                     }}
-                    aria-pressed={statusFilter === "DONE"}
+                    aria-pressed={statusFilterInput === "DONE"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "DONE"
                         ? "border-emerald-800 bg-emerald-700 text-white shadow-sm"
@@ -649,8 +639,7 @@ function RequestsPageContent() {
                   className={`text-xs font-semibold text-slate-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
                 >
                   จำนวนรายการทั้งหมด{" "}
-                  <span className="text-slate-900">{filteredRequests.length}</span>{" "}
-                  รายการ
+                  <span className="text-slate-900">{totalCount}</span> รายการ
                 </div>
               </div>
 
@@ -698,7 +687,7 @@ function RequestsPageContent() {
                           </TableCell>
                         </TableRow>
                       ))
-                    : paginatedRequests.map((request) => (
+                    : requests.map((request) => (
                         <TableRow key={request.id} className="even:bg-slate-50/60">
                           <TableCell className="px-4 py-3 text-center text-sm font-medium text-slate-800">
                             {formatDisplayDate(request.submittedDate)}
@@ -733,7 +722,7 @@ function RequestsPageContent() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  {!isLoading && paginatedRequests.length === 0 && (
+                  {!isLoading && requests.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={5}
