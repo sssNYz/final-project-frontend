@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import type { CSSProperties } from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Trash2, User2 } from "lucide-react"
 import Swal from "sweetalert2"
@@ -68,6 +68,7 @@ const ROLE_LABELS: Record<AccountRole, string> = {
 }
 // จำนวนรายการต่อหน้าในตารางบัญชีผู้ใช้งาน
 const PAGE_SIZE = 6
+const FETCH_PAGE_SIZE = 200
 
 // หน้า Dashboard > บัญชีผู้ใช้งาน
 // แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ
@@ -85,106 +86,85 @@ export default function AccountsPage() {
     useState<"all" | "active" | "inactive">("all")
   const [searchEmailInput, setSearchEmailInput] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const pageSize = PAGE_SIZE
 
-  async function fetchAccounts(params: {
-    role: "all" | AccountRole
-    status: "all" | "active" | "inactive"
-    email: string
-    page: number
-    size: number
-  }) {
+  async function fetchAccounts() {
     try {
-      console.log("[accounts] fetchAccounts", params)
+      console.log("[accounts] fetchAccounts")
       setIsLoading(true)
       setLoadError(null)
+      const collected: AdminAccount[] = []
+      let page = 1
+      let totalPages = 1
 
-      const queryParams = new URLSearchParams()
-      queryParams.set("page", String(params.page))
-      queryParams.set("pageSize", String(params.size))
-      if (params.role !== "all") {
-        queryParams.set("role", params.role)
-      }
-      if (params.status !== "all") {
-        queryParams.set("status", params.status)
-      }
-      if (params.email.trim()) {
-        queryParams.set("email", params.email.trim())
-      }
-      const query = queryParams.toString()
-      const res = await apiFetch(
-        query
-          ? `/api/admin/v1/users/list?${query}`
-          : "/api/admin/v1/users/list",
-        { cache: "no-store" },
-      )
+      while (page <= totalPages) {
+        const queryParams = new URLSearchParams()
+        queryParams.set("page", String(page))
+        queryParams.set("pageSize", String(FETCH_PAGE_SIZE))
+        const query = queryParams.toString()
 
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        setLoadError(
-          (data && (data.error as string | undefined)) ||
-            "โหลดข้อมูลบัญชีผู้ใช้ไม่สำเร็จ",
+        const res = await apiFetch(
+          query
+            ? `/api/admin/v1/users/list?${query}`
+            : "/api/admin/v1/users/list",
+          { cache: "no-store" },
         )
-        return
-      }
 
-      const meta = (data?.meta ?? {}) as {
-        page?: number
-        pageSize?: number
-        total?: number
-        totalPages?: number
-      }
+        const data = await res.json().catch(() => null)
 
-      // แปลงข้อมูลที่ได้มาเป็นรูปแบบตาราง
-      const items = (data?.accounts ?? data?.items ?? data?.data ?? []) as {
-        userId: number
-        email: string
-        role: string
-        active: boolean
-        lastLogin: Date | string | null
-      }[]
-
-      const mappedAccounts: AdminAccount[] = items
-        .filter((item) => {
-          const normalizedRole = String(item.role ?? "").trim().toLowerCase()
-          if (normalizedRole === "superadmin") {
-            return false
-          }
-          return normalizedRole === "admin" || normalizedRole === "member"
-        })
-        .map((item) => ({
-          userId: item.userId,
-          email: item.email,
-          role: String(item.role ?? "").trim().toLowerCase() as AccountRole,
-          active: item.active,
-          lastLogin: item.lastLogin
-            ? typeof item.lastLogin === "string"
-              ? item.lastLogin
-              : new Date(item.lastLogin).toISOString()
-            : null,
-        }))
-
-      if (typeof meta.total === "number") {
-        setTotalCount(meta.total)
-      } else {
-        setTotalCount(mappedAccounts.length)
-      }
-      if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
-        setTotalPages(meta.totalPages)
-        if (params.page > meta.totalPages) {
-          setCurrentPage(meta.totalPages)
+        if (!res.ok) {
+          setLoadError(
+            (data && (data.error as string | undefined)) ||
+              "โหลดข้อมูลบัญชีผู้ใช้ไม่สำเร็จ",
+          )
+          return
         }
-      } else {
-        setTotalPages(1)
-      }
-      if (typeof meta.pageSize === "number" && meta.pageSize > 0) {
-        setPageSize(meta.pageSize)
+
+        const meta = (data?.meta ?? {}) as {
+          totalPages?: number
+        }
+
+        // แปลงข้อมูลที่ได้มาเป็นรูปแบบตาราง
+        const items = (data?.accounts ?? data?.items ?? data?.data ?? []) as {
+          userId: number
+          email: string
+          role: string
+          active: boolean
+          lastLogin: Date | string | null
+        }[]
+
+        const mappedAccounts: AdminAccount[] = items
+          .filter((item) => {
+            const normalizedRole = String(item.role ?? "").trim().toLowerCase()
+            if (normalizedRole === "superadmin") {
+              return false
+            }
+            return normalizedRole === "admin" || normalizedRole === "member"
+          })
+          .map((item) => ({
+            userId: item.userId,
+            email: item.email,
+            role: String(item.role ?? "").trim().toLowerCase() as AccountRole,
+            active: item.active,
+            lastLogin: item.lastLogin
+              ? typeof item.lastLogin === "string"
+                ? item.lastLogin
+                : new Date(item.lastLogin).toISOString()
+              : null,
+          }))
+
+        collected.push(...mappedAccounts)
+
+        if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+          totalPages = meta.totalPages
+        } else if (items.length < FETCH_PAGE_SIZE) {
+          totalPages = page
+        }
+
+        page += 1
       }
 
-      setAccounts(mappedAccounts)
+      setAccounts(collected)
     } catch {
       setLoadError("เกิดข้อผิดพลาดในการโหลดข้อมูลบัญชีผู้ใช้")
     } finally {
@@ -193,16 +173,35 @@ export default function AccountsPage() {
   }
 
   useEffect(() => {
-    void fetchAccounts({
-      role: roleFilter,
-      status: statusFilter,
-      email: searchEmail,
-      page: currentPage,
-      size: pageSize,
-    })
+    void fetchAccounts()
   }, [])
 
+  const filteredAccounts = useMemo(() => {
+    const emailQuery = searchEmail.trim().toLowerCase()
+    return accounts.filter((account) => {
+      if (roleFilter !== "all" && account.role !== roleFilter) {
+        return false
+      }
+      if (statusFilter !== "all") {
+        const shouldBeActive = statusFilter === "active"
+        if (account.active !== shouldBeActive) {
+          return false
+        }
+      }
+      if (emailQuery && !account.email.toLowerCase().includes(emailQuery)) {
+        return false
+      }
+      return true
+    })
+  }, [accounts, roleFilter, statusFilter, searchEmail])
+
+  const totalCount = filteredAccounts.length
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const safePage = Math.min(currentPage, totalPages)
+  const pagedAccounts = filteredAccounts.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize,
+  )
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
@@ -211,14 +210,13 @@ export default function AccountsPage() {
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
-    void fetchAccounts({
-      role: roleFilter,
-      status: statusFilter,
-      email: searchEmail,
-      page,
-      size: pageSize,
-    })
   }
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   // สลับสถานะ active/ inactive ผ่าน API และอัปเดต UI
   async function handleToggleStatus(userId: number) {
@@ -448,13 +446,6 @@ return (
                         setStatusFilter(nextStatus)
                         setSearchEmail(nextEmail)
                         setCurrentPage(1)
-                        void fetchAccounts({
-                          role: nextRole,
-                          status: nextStatus,
-                          email: nextEmail,
-                          page: 1,
-                          size: pageSize,
-                        })
                       }}
                     />
                   </div>
@@ -521,7 +512,7 @@ return (
                           </TableCell>
                         </TableRow>
                       ))
-                    : accounts.map((account) => (
+                    : pagedAccounts.map((account) => (
                         <TableRow
                           key={account.userId}
                           className="even:bg-slate-50/70"
@@ -574,7 +565,7 @@ return (
                           </TableCell>
                         </TableRow>
                       ))}
-                  {!isLoading && accounts.length === 0 && (
+                  {!isLoading && filteredAccounts.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={5}

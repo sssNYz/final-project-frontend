@@ -77,8 +77,12 @@ function NewAdminPageContent() {
       return
     }
 
-    if (password.length < 8) {
-      setError("รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร")
+    const allowedPassword = /^[A-Za-z0-9@#_*\.]{8,16}$/
+
+    if (!allowedPassword.test(password)) {
+      setError(
+        "รหัสผ่าน 8–16 ตัว ใช้ A-Z a-z 0-9 @ # _ * .",
+      )
       return
     }
 
@@ -248,7 +252,7 @@ function NewAdminPageContent() {
                         </button>
                       </div>
                       <FieldDescription className="mt-1 text-center text-[11px] text-slate-500">
-                        รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร
+                        รหัสผ่าน 8–16 ตัว ใช้ A-Z a-z 0-9 @ # _ * .
                       </FieldDescription>
                     </Field>
                     <Field>

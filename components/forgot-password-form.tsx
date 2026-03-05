@@ -18,6 +18,8 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 type ForgotPasswordFlow = "request" | "reset"
+const passwordAllowedPattern = /^[A-Za-z0-9@#_*\.]{8,16}$/
+const passwordSpecialPattern = /[@#_*\.]/
 
 export function ForgotPasswordForm({
   flow = "request",
@@ -67,6 +69,28 @@ export function ForgotPasswordForm({
     },
     [],
   )
+  const getResetErrorMessage = useMemo(
+    () => (data: unknown) => {
+      if (!data || typeof data !== "object") return null
+      const payload = data as Record<string, unknown>
+      const rawError = String(payload.error ?? "").trim().toLowerCase()
+      const rawMessage = String(payload.message ?? "").trim().toLowerCase()
+      const merged = `${rawError} ${rawMessage}`.trim()
+
+      if (
+        rawError === "reset_failed" ||
+        merged.includes("reset_failed") ||
+        merged.includes("invalid token") ||
+        merged.includes("token expired") ||
+        merged.includes("expired token") ||
+        merged.includes("invalid or expired")
+      ) {
+        return "ไม่สามารถตั้งรหัสผ่านใหม่ได้ เนื่องจากลิงก์หมดอายุหรือไม่ถูกต้อง กรุณาขอรีเซ็ตรหัสผ่านใหม่อีกครั้ง"
+      }
+      return null
+    },
+    [],
+  )
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -80,15 +104,19 @@ export function ForgotPasswordForm({
       }
     } else {
       if (!token) {
-        setError("ไม่พบโทเค็นรีเซ็ตรหัสผ่าน")
+        setError("Token หมดอายุ กรุณาลองขอรีเซ็ตใหม่อีกครั้ง")
         return
       }
       if (!newPassword || !confirmPassword) {
         setError("กรุณากรอกรหัสผ่านใหม่ให้ครบ")
         return
       }
-      if (newPassword.length < 8) {
-        setError("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร")
+      if (!passwordAllowedPattern.test(newPassword)) {
+        setError("รหัสผ่านใหม่ต้องยาว 8-16 ตัว และใช้ได้เฉพาะ A-Z a-z 0-9 @ # _ * .")
+        return
+      }
+      if (!passwordSpecialPattern.test(newPassword)) {
+        setError("รหัสผ่านใหม่ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (@ # _ * .)")
         return
       }
       if (newPassword !== confirmPassword) {
@@ -129,11 +157,17 @@ export function ForgotPasswordForm({
           setError("ไม่พบบัญชีนี้ในระบบ")
           return
         }
+        if (isResetFlow) {
+          setError(
+            getResetErrorMessage(data) ||
+              backendErrorMessage(data) ||
+              "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองอีกครั้ง",
+          )
+          return
+        }
         setError(
           backendErrorMessage(data) ||
-            (!isResetFlow
-              ? "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้"
-              : "ไม่สามารถเปลี่ยนรหัสผ่านได้"),
+            "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้",
         )
         return
       }
@@ -207,7 +241,11 @@ export function ForgotPasswordForm({
                       <Input
                         id="new-password"
                         type={showNewPassword ? "text" : "password"}
-                        placeholder="อย่างน้อย 8 ตัวอักษร"
+                        placeholder="รหัสผ่าน 8–16 ตัว ใช้ A-Z a-z 0-9 @ # _ * ."
+                        pattern="^(?=.*[@#_*\\.])[A-Za-z0-9@#_*\\.]{8,16}$"
+                        title="รหัสผ่านต้องยาว 8-16 ตัว และมีอักขระพิเศษอย่างน้อย 1 ตัว (@ # _ * .)"
+                        minLength={8}
+                        maxLength={16}
                         required
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
