@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
 import {
   Table,
@@ -36,6 +36,11 @@ export function AccountUsageTable({
 }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const rowIdSet = useMemo(() => new Set(rows.map((row) => row.id)), [rows])
+  const selectedExistingIds = useMemo(
+    () => selectedIds.filter((id) => rowIdSet.has(id)),
+    [selectedIds, rowIdSet],
+  )
 
   // คำนวณจำนวนหน้า และแบ่งข้อมูลตาม pageSize
   const { totalPages, safePage, paginatedRows } = useMemo(() => {
@@ -72,14 +77,15 @@ export function AccountUsageTable({
   // เรียก callback ลบรายการที่ถูกเลือก และรีเซ็ตการเลือก/หน้า
   function deleteSelected() {
     if (deleteDisabled) return
-    if (!onDeleteSelected || selectedIds.length === 0) return
-    onDeleteSelected(selectedIds)
+    if (!onDeleteSelected || selectedExistingIds.length === 0) return
+    onDeleteSelected(selectedExistingIds)
     setSelectedIds([])
     setCurrentPage(1)
   }
 
-  const hasSelection = selectedIds.length > 0
-  const allSelected = rows.length > 0 && selectedIds.length === rows.length
+  const hasSelection = selectedExistingIds.length > 0
+  const allSelected =
+    rows.length > 0 && selectedExistingIds.length === rows.length
 
   function toggleSelectAll() {
     if (allSelected) {
@@ -88,16 +94,6 @@ export function AccountUsageTable({
       setSelectedIds(rows.map((row) => row.id))
     }
   }
-
-  useEffect(() => {
-    if (rows.length === 0) {
-      setSelectedIds([])
-      return
-    }
-    setSelectedIds((prev) =>
-      prev.filter((id) => rows.some((row) => row.id === id)),
-    )
-  }, [rows])
 
   return (
     <>
@@ -140,7 +136,7 @@ export function AccountUsageTable({
                   <input
                     type="checkbox"
                     aria-label={`เลือก ${row.name}`}
-                    checked={selectedIds.includes(row.id)}
+                    checked={selectedExistingIds.includes(row.id)}
                     onChange={() => toggleSelect(row.id)}
                     disabled={deleteDisabled}
                   />
@@ -182,7 +178,7 @@ export function AccountUsageTable({
             disabled={!hasSelection || deleteDisabled}
             className="rounded-md border border-orange-400 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-200 disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
           >
-            ลบรายการที่เลือก ({selectedIds.length})
+            ลบรายการที่เลือก ({selectedExistingIds.length})
           </button>
         )}
         <div className="flex flex-1 items-center justify-center gap-3">

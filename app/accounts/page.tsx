@@ -73,7 +73,7 @@ const FETCH_PAGE_SIZE = 200
 // หน้า Dashboard > บัญชีผู้ใช้งาน
 // แสดงรายการบัญชีแอดมิน/สมาชิก พร้อมตัวกรองสิทธิ์/สถานะ และปุ่มเพิ่ม/ลบ
 export default function AccountsPage() {
-  const { alert, confirm } = useAlert()
+  const { confirm } = useAlert()
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)

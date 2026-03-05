@@ -2,7 +2,7 @@
 "use client"// ใช้ React hooks และ state ในคอมโพเนนต์นี้
 
 import type { CSSProperties, FormEvent } from "react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 // ไอคอนจากไลบรารี lucide-react
 import { FileText, Pill, Search, Trash2 } from "lucide-react"
 // ฟังก์ชันสำหรับเรียก API ภายในแอป
@@ -15,8 +15,6 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { SearchButton } from "@/components/ui/search-button"

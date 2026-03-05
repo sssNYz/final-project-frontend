@@ -79,7 +79,7 @@ export function LoginForm({
       }
 // นำผู้ใช้ไปยังหน้า Dashboard
       router.push("/dashboard")
-    } catch (err) {
+    } catch {
       setError("Network error. Please try again.")
     } finally {
       setIsLoading(false)

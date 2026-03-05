@@ -153,7 +153,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       }
       const destination = safeReturnTo || "/dashboard"
       router.push(destination)
-    } catch (err) {
+    } catch {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อ")
     } finally {
       setIsLoading(false)

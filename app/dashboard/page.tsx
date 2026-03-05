@@ -1,4 +1,3 @@
-﻿﻿/* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 
 import type { CSSProperties } from "react"
@@ -243,7 +242,7 @@ export default function Page() {
     } finally {
       setIsLoading(false)
     }
-  }, [fromDate, toDate])
+  }, [fromDate, fromDateInput, toDate, toDateInput])
 
   useEffect(() => {
     fetchUsage()

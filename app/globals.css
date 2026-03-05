@@ -50,24 +50,24 @@
   --font-ibm_plex_sans_thai_looped-sans: var(--app-font-sans);
   --font-ibm_plex_sans_thai_looped-mono: var(--app-font-mono);
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: oklch(0.98 0.02 236);
+  --foreground: oklch(0.3 0.04 245);
+  --card: oklch(0.99 0.012 232);
+  --card-foreground: oklch(0.3 0.04 245);
+  --popover: oklch(0.995 0.01 232);
+  --popover-foreground: oklch(0.3 0.04 245);
+  --primary: oklch(0.7 0.12 238);
+  --primary-foreground: oklch(0.99 0.01 232);
+  --secondary: oklch(0.95 0.02 235);
+  --secondary-foreground: oklch(0.34 0.04 245);
+  --muted: oklch(0.955 0.018 235);
+  --muted-foreground: oklch(0.52 0.03 245);
+  --accent: oklch(0.94 0.03 225);
+  --accent-foreground: oklch(0.34 0.04 245);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.03 236);
+  --input: oklch(0.9 0.03 236);
+  --ring: oklch(0.76 0.1 236);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -125,6 +125,14 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-family: var(--app-font-sans);
+    min-height: 100dvh;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(168, 224, 255, 0.55) 0, rgba(168, 224, 255, 0) 34%),
+      radial-gradient(circle at 88% 14%, rgba(207, 235, 255, 0.5) 0, rgba(207, 235, 255, 0) 30%),
+      linear-gradient(160deg, #f5fbff 0%, #edf7ff 42%, #f8fcff 100%);
+    background-attachment: fixed;
+    position: relative;
+    overflow-x: hidden;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -132,5 +140,124 @@
   input[type="submit"]:not(:disabled),
   input[type="reset"]:not(:disabled) {
     cursor: pointer;
+  }
+}
+
+@keyframes pastelFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.03);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  width: 26rem;
+  height: 26rem;
+  border-radius: 999px;
+  z-index: -1;
+  filter: blur(26px);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+body::before {
+  top: -8rem;
+  left: -6rem;
+  background: radial-gradient(circle, rgba(156, 224, 255, 0.75) 0%, rgba(156, 224, 255, 0) 65%);
+  animation: pastelFloat 8s ease-in-out infinite;
+}
+
+body::after {
+  right: -7rem;
+  bottom: -9rem;
+  background: radial-gradient(circle, rgba(189, 232, 255, 0.75) 0%, rgba(189, 232, 255, 0) 68%);
+  animation: pastelFloat 10s ease-in-out infinite reverse;
+}
+
+main > * {
+  animation: fadeUp 0.5s ease-out both;
+}
+
+main > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+main > *:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
+.rounded-3xl {
+  border-color: rgba(176, 219, 247, 0.55) !important;
+  box-shadow: 0 14px 38px rgba(122, 186, 235, 0.18) !important;
+  backdrop-filter: blur(8px);
+}
+
+button,
+input,
+textarea,
+select {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(123, 185, 234, 0.24);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(115, 182, 236, 0.75) !important;
+  box-shadow: 0 0 0 4px rgba(152, 213, 255, 0.24);
+}
+
+table tbody tr {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+table tbody tr:hover {
+  background-color: rgba(226, 244, 255, 0.68);
+}
+
+@media (max-width: 768px) {
+  body::before,
+  body::after {
+    width: 18rem;
+    height: 18rem;
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

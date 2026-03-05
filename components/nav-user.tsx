@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
-import { IconDotsVertical, IconLogout } from "@tabler/icons-react"
+import { IconLogout } from "@tabler/icons-react"
 
 import { apiFetch, clearAuthCache } from "@/lib/apiClient"
 import { clearLoggedInUserEmail } from "@/lib/authUser"
@@ -13,15 +13,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
 
 export function NavUser({
@@ -33,7 +30,6 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const { isMobile } = useSidebar()
   const router = useRouter()
   const [displayEmail, setDisplayEmail] = useState(user.email)
 

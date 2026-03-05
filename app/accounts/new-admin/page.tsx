@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 import { Eye, EyeOff } from "lucide-react"
 import Swal from "sweetalert2"
-import { useAlert } from "@/components/ui/alert-modal"
 
 import { apiFetch } from "@/lib/apiClient"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -33,7 +32,6 @@ import {
 function NewAdminPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { alert } = useAlert()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -85,6 +83,10 @@ function NewAdminPageContent() {
       )
       return
     }
+    if (!/[@#_*\.]/.test(password)) {
+      setError("รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (@ # _ * .)")
+      return
+    }
 
     try {
       setIsLoading(true)
@@ -134,7 +136,7 @@ function NewAdminPageContent() {
       }
       const returnTo = encodeURIComponent("/accounts/new-admin?success=1")
       router.push(`/otp?email=${encodeURIComponent(email)}&returnTo=${returnTo}`)
-    } catch (err) {
+    } catch {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย")
     } finally {
       setIsLoading(false)
