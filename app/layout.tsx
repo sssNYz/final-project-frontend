@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Pridi } from "next/font/google"
+import { Google_Sans } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 import { AlertProvider } from "@/components/ui/alert-modal"
@@ -14,16 +14,16 @@ export const metadata: Metadata = {
   },
 }
 
-const myfontSans = Pridi({
+const myfontSans = Google_Sans({
   subsets: ["thai", "latin"],
-  weight: ["200", "300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700",],
   variable: "--font-app-sans",
   display: "swap",
 })
 
-const myfontMono = Pridi({
+const myfontMono = Google_Sans({
   subsets: ["thai", "latin"],
-  weight: ["200", "300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-mono",
   display: "swap",
 })
