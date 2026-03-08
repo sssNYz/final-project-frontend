@@ -1,6 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
+import type { Matcher } from "react-day-picker"
 import { Suspense, useEffect, useMemo, useState } from "react"
 
 import {
@@ -189,6 +190,20 @@ function formatDisplayDate(isoDate: string) {
   return `${day} ${monthName} ${buddhistYear}`
 }
 
+function formatPickerDisplayDate(date: Date) {
+  return `${date.getDate()} ${date.toLocaleDateString(
+    "th-TH-u-ca-buddhist",
+    { month: "short" },
+  )} ${date.getFullYear() + 543}`
+}
+
+function parseApiDateLimit(value: unknown): Date | undefined {
+  if (typeof value !== "string") return undefined
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return undefined
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+}
+
 function RequestsPageContent() {
   const [requests, setRequests] = useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
@@ -215,6 +230,13 @@ function RequestsPageContent() {
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const [earliestDateLimit, setEarliestDateLimit] = useState<Date | undefined>(
+    undefined,
+  )
+  const [latestDateLimit, setLatestDateLimit] = useState<Date | undefined>(
+    undefined,
+  )
+  const showSkeletonRows = isLoading && requests.length === 0
 
   useEffect(() => {
     async function fetchRequests() {
@@ -247,24 +269,43 @@ function RequestsPageContent() {
             : "/api/admin/v1/user-request/list",
         )
         const data = await res.json().catch(() => null)
+        const payload =
+          data && typeof data === "object" && "body" in data
+            ? (data.body as Record<string, unknown>)
+            : (data as Record<string, unknown> | null)
 
         if (!res.ok) {
           setLoadError(
-            (data && (data.error as string | undefined)) ||
+            (payload && (payload.error as string | undefined)) ||
+              (data && (data.error as string | undefined)) ||
               "โหลดคำร้องไม่สำเร็จ",
           )
           return
         }
 
-        const items = (data?.requests ?? data?.items ?? data?.data ?? []) as Array<
+        const items = (payload?.requests ??
+          payload?.items ??
+          payload?.data ??
+          []) as Array<
           Record<string, unknown>
         >
-        const meta = (data?.meta ?? {}) as {
+        const metaSource = (payload?.meta ?? {}) as Record<string, unknown>
+        const meta = metaSource as {
           page?: number
           pageSize?: number
           total?: number
           totalPages?: number
         }
+        const dateLimits = (
+          payload?.dateLimits ??
+          metaSource.dateLimits ??
+          {}
+        ) as {
+          earliest?: string
+          latest?: string
+        }
+        setEarliestDateLimit(parseApiDateLimit(dateLimits.earliest))
+        setLatestDateLimit(parseApiDateLimit(dateLimits.latest))
         if (typeof meta.total === "number") {
           setTotalCount(meta.total)
         } else {
@@ -397,6 +438,16 @@ function RequestsPageContent() {
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
+  const fromDateDisplayLabel = fromDateInput
+    ? formatPickerDisplayDate(fromDateInput)
+    : earliestDateLimit
+      ? formatPickerDisplayDate(earliestDateLimit)
+      : "เริ่มต้น"
+  const toDateDisplayLabel = toDateInput
+    ? formatPickerDisplayDate(toDateInput)
+    : latestDateLimit
+      ? formatPickerDisplayDate(latestDateLimit)
+      : "สิ้นสุด"
 
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
@@ -424,7 +475,7 @@ function RequestsPageContent() {
                   <div className="flex items-center text-[11px] text-slate-600">
                     <span className="w-28">หมวดหมู่</span>
                     <span className="w-28 pl-3">สถานะ</span>
-                    <span className="w-28 pl-3">ค้นหา</span>
+                    <span className="w-28 pl-3">อีเมล</span>
                     <span className="flex-1" />
                   </div>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
@@ -468,7 +519,7 @@ function RequestsPageContent() {
                     <div className="h-5 w-px bg-slate-200" />
                     <Input
                       type="text"
-                      placeholder="ค้นหาในหัวข้อ/รายละเอียด"
+                      placeholder="อีเมลผู้ส่งคำร้อง"
                       value={searchEmailInput}
                       onChange={(event) =>
                         setSearchEmailInput(event.target.value)
@@ -491,14 +542,7 @@ function RequestsPageContent() {
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
                               <Clock className="h-3.5 w-3.5" />
                             </span>
-                            <span className="truncate">
-                              {fromDateInput
-                                ? `${fromDateInput.getDate()} ${fromDateInput.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "short" },
-                                  )} ${fromDateInput.getFullYear() + 543}`
-                                : "เริ่มต้น"}
-                            </span>
+                            <span className="truncate">{fromDateDisplayLabel}</span>
                           </span>
                           <CalendarIcon className="h-4 w-4 text-slate-400" />
                         </button>
@@ -508,6 +552,17 @@ function RequestsPageContent() {
                           mode="single"
                           selected={fromDateInput}
                           onSelect={setFromDateInput}
+                          defaultMonth={fromDateInput ?? earliestDateLimit}
+                          startMonth={earliestDateLimit}
+                          endMonth={latestDateLimit}
+                          disabled={[
+                            ...(latestDateLimit
+                              ? ([{ after: latestDateLimit }] satisfies Matcher[])
+                              : []),
+                            ...(earliestDateLimit
+                              ? ([{ before: earliestDateLimit }] satisfies Matcher[])
+                              : []),
+                          ]}
                         />
                       </PopoverContent>
                     </Popover>
@@ -522,14 +577,7 @@ function RequestsPageContent() {
                             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
                               <Clock className="h-3.5 w-3.5" />
                             </span>
-                            <span className="truncate">
-                              {toDateInput
-                                ? `${toDateInput.getDate()} ${toDateInput.toLocaleDateString(
-                                    "th-TH-u-ca-buddhist",
-                                    { month: "short" },
-                                  )} ${toDateInput.getFullYear() + 543}`
-                                : "สิ้นสุด"}
-                            </span>
+                            <span className="truncate">{toDateDisplayLabel}</span>
                           </span>
                           <CalendarIcon className="h-4 w-4 text-slate-400" />
                         </button>
@@ -539,6 +587,17 @@ function RequestsPageContent() {
                           mode="single"
                           selected={toDateInput}
                           onSelect={setToDateInput}
+                          defaultMonth={toDateInput ?? latestDateLimit}
+                          startMonth={earliestDateLimit}
+                          endMonth={latestDateLimit}
+                          disabled={[
+                            ...(latestDateLimit
+                              ? ([{ after: latestDateLimit }] satisfies Matcher[])
+                              : []),
+                            ...(earliestDateLimit
+                              ? ([{ before: earliestDateLimit }] satisfies Matcher[])
+                              : []),
+                          ]}
                         />
                       </PopoverContent>
                     </Popover>
@@ -632,11 +691,11 @@ function RequestsPageContent() {
 
               {loadError && <p className="text-sm text-red-500">{loadError}</p>}
               <div className="flex items-center justify-between">
-                {isLoading && (
+                {showSkeletonRows && (
                   <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
                 )}
                 <div
-                  className={`text-xs font-semibold text-slate-700 ${isLoading ? "opacity-0" : "opacity-100"}`}
+                  className={`text-xs font-semibold text-slate-700 ${showSkeletonRows ? "opacity-0" : "opacity-100"}`}
                 >
                   จำนวนรายการทั้งหมด{" "}
                   <span className="text-slate-900">{totalCount}</span> รายการ
@@ -664,7 +723,7 @@ function RequestsPageContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading
+                  {showSkeletonRows
                     ? Array.from({ length: PAGE_SIZE }, (_, index) => (
                         <TableRow
                           key={`request-skeleton-${index}`}
@@ -722,7 +781,7 @@ function RequestsPageContent() {
                           </TableCell>
                         </TableRow>
                       ))}
-                  {!isLoading && requests.length === 0 && (
+                  {!showSkeletonRows && requests.length === 0 && (
                     <TableRow>
                       <TableCell
                         colSpan={5}

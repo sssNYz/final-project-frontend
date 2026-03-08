@@ -156,6 +156,7 @@ export default function Page() {
   const [toDate, setToDate] = useState<Date | undefined>(defaultRange.to)
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const today = useMemo(() => toUtcDateOnly(new Date()), [])
   const showError = async (message: string, title = "เกิดข้อผิดพลาด") => {
     await Swal.fire({
       icon: "error",
@@ -413,6 +414,8 @@ export default function Page() {
                           mode="single"
                           selected={fromDateInput}
                           onSelect={setFromDateInput}
+                          endMonth={today}
+                          disabled={{ after: today }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -446,6 +449,8 @@ export default function Page() {
                           mode="single"
                           selected={toDateInput}
                           onSelect={setToDateInput}
+                          endMonth={today}
+                          disabled={{ after: today }}
                         />
                       </PopoverContent>
                     </Popover>
