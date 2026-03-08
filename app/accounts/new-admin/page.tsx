@@ -61,6 +61,7 @@ function NewAdminPageContent() {
     })
   }, [router, successFlag])
 
+  // เรียกใช้ฟังก์ชัน 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -69,7 +70,6 @@ function NewAdminPageContent() {
       setError("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน")
       return
     }
-
     if (password !== confirmPassword) {
       setError("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน")
       return
@@ -95,7 +95,7 @@ function NewAdminPageContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
         }),
         skipAuthRedirect: true,
@@ -104,12 +104,25 @@ function NewAdminPageContent() {
       const data = await res.json().catch(() => null)
       const errorCode = String(data?.error ?? "").toLowerCase().trim()
       const errorMessage = String(data?.message ?? "").toLowerCase().trim()
+      const errorDetail = String(data?.detail ?? "").toLowerCase().trim()
       const errorText = `${errorCode} ${errorMessage}`.trim()
       if (errorCode === "email_exists" || errorText.includes("email_exists")) {
         await Swal.fire({
           icon: "error",
           title: "อีเมลซ้ำ",
           text: "อีเมลนี้มีอยู่แล้วในระบบ",
+        })
+        return
+      }
+      if (
+        errorCode === "validation_error" ||
+        errorMessage.includes("email not found in our system") ||
+        errorDetail.includes("email not found in our system")
+      ) {
+        await Swal.fire({
+          icon: "error",
+          title: "ไม่พบบัญชีผู้ใช้",
+          text: "ไม่พบบัญชีที่ใช้อีเมลนี้ กรุณาตรวจสอบอีกครั้ง",
         })
         return
       }
@@ -135,7 +148,7 @@ function NewAdminPageContent() {
         )
       }
       const returnTo = encodeURIComponent("/accounts/new-admin?success=1")
-      router.push(`/otp?email=${encodeURIComponent(email)}&returnTo=${returnTo}`)
+      router.push(`/otp?email=${encodeURIComponent(email.trim())}&returnTo=${returnTo}`)
     } catch {
       setError("เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย")
     } finally {

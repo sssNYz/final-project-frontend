@@ -94,44 +94,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         setError(data?.error || "ยืนยันรหัสไม่สำเร็จ")
         return
       }
-      if (isAdminFlow) {
-        if (typeof window !== "undefined") {
-          const pending = window.sessionStorage.getItem("pendingRegister")
-          let payload:
-            | { email?: string; password?: string }
-            | null = null
-          try {
-            payload = JSON.parse(pending ?? "null") as {
-              email?: string
-              password?: string
-            } | null
-          } catch {
-            payload = null
-          }
-          if (!payload?.email || !payload?.password || payload.email !== email) {
-            setError("ไม่พบข้อมูลสำหรับสร้างบัญชีผู้ดูแลระบบ")
-            return
-          }
-          const registerRes = await apiFetch("/api/admin/v2/admins", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: payload.email,
-              password: payload.password,
-            }),
-            skipAuth: true,
-            skipAuthRedirect: true,
-          })
-          const registerData = await registerRes.json().catch(() => null)
-          if (!registerRes.ok) {
-            setError(
-              registerData?.error ||
-                "ไม่สามารถสร้างบัญชีผู้ดูแลระบบได้",
-            )
-            return
-          }
-        }
-      } else {
+      if (!isAdminFlow) {
         const refreshToken =
           (data?.refreshToken as string | undefined) ??
           (data?.tokens?.refreshToken as string | undefined) ??

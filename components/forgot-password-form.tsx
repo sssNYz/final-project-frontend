@@ -91,6 +91,27 @@ export function ForgotPasswordForm({
     },
     [],
   )
+  const getForgotPasswordRequestErrorMessage = useMemo(
+    () => (data: unknown) => {
+      if (!data || typeof data !== "object") {
+        return "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้"
+      }
+      const payload = data as Record<string, unknown>
+      const rawError = String(payload.error ?? "").trim().toLowerCase()
+
+      if (rawError === "validation_error") {
+        return "ไม่พบบัญชีที่ใช้อีเมลนี้ กรุณาตรวจสอบอีกครั้ง"
+      }
+
+      return (
+        (payload.message as string | undefined) ||
+        (payload.error as string | undefined) ||
+        (payload.detail as string | undefined) ||
+        "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้"
+      )
+    },
+    [],
+  )
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -127,21 +148,34 @@ export function ForgotPasswordForm({
 
     try {
       setIsLoading(true)
-      const res =
-        !isResetFlow
-          ? await apiFetch("/api/auth/v2/forgot-password/request", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email,
-                redirectTo:
-                  process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
-                  defaultRedirectTo,
-              }),
-              skipAuth: true,
-              skipAuthRedirect: true,
-            })
-          : await apiFetch("/api/auth/v2/forgot-password/reset", {
+      if (!isResetFlow) {
+        const res = await apiFetch("/api/auth/v2/forgot-password/request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim(),
+            redirectTo:
+              process.env.NEXT_PUBLIC_FORGOT_PASSWORD_REDIRECT_TO ||
+              defaultRedirectTo,
+          }),
+          skipAuth: true,
+          skipAuthRedirect: true,
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok) {
+          setError(
+            getForgotPasswordRequestErrorMessage(data),
+          )
+          return
+        }
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(forgotEmailStorageKey, email.trim())
+        }
+        setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านเรียบร้อยแล้ว กรุณาตรวจสอบอีเมลของคุณ")
+        return
+      }
+
+      const res = await apiFetch("/api/auth/v2/forgot-password/reset", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -153,29 +187,11 @@ export function ForgotPasswordForm({
             })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        if (!isResetFlow && res.status === 404) {
-          setError("ไม่พบบัญชีนี้ในระบบ")
-          return
-        }
-        if (isResetFlow) {
-          setError(
-            getResetErrorMessage(data) ||
-              backendErrorMessage(data) ||
-              "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองอีกครั้ง",
-          )
-          return
-        }
         setError(
-          backendErrorMessage(data) ||
-            "ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้",
+          getResetErrorMessage(data) ||
+            backendErrorMessage(data) ||
+            "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองอีกครั้ง",
         )
-        return
-      }
-      if (!isResetFlow) {
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(forgotEmailStorageKey, email)
-        }
-        setNotice("ส่งลิงก์รีเซ็ตรหัสผ่านเรียบร้อยแล้ว กรุณาตรวจสอบอีเมลของคุณ")
         return
       }
 
