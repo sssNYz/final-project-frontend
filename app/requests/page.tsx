@@ -70,6 +70,11 @@ type RequestSummaryCounts = {
   completed: number
 }
 
+type DateRangeState = {
+  from: Date | undefined
+  to: Date | undefined
+}
+
 const STATUS_LABELS: Record<RequestStatus, string> = {
   PENDING: "รอดำเนินการ",
   REJECTED: "ปฏิเสธ",
@@ -91,7 +96,7 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
 }
 // จำนวนรายการต่อหน้าในตารางคำร้องจากผู้ใช้
 const PAGE_SIZE = 6
-const SUMMARY_PAGE_SIZE = 1
+const FETCH_PAGE_SIZE = 200
 
 const initialRequests: RequestRow[] = []
 const initialSummaryCounts: RequestSummaryCounts = {
@@ -218,6 +223,92 @@ function parseApiDateLimit(value: unknown): Date | undefined {
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
 }
 
+function formatDateParam(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function parseDateOnly(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return undefined
+  const [, year, month, day] = match
+  return new Date(Number(year), Number(month) - 1, Number(day))
+}
+
+function getDateOnlyTime(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
+function mapRequestRow(item: Record<string, unknown>, index: number): RequestRow {
+  const rawId =
+    (item.id as string | number | undefined) ??
+    (item.requestId as string | number | undefined) ??
+    (item.request_id as string | number | undefined)
+  const id = rawId ? String(rawId) : `REQ-${index + 1}`
+
+  const userEmail =
+    typeof item.user === "object" && item.user !== null
+      ? (item.user as { email?: string }).email
+      : undefined
+
+  const email =
+    (item.email as string | undefined) ??
+    userEmail ??
+    (item.userEmail as string | undefined) ??
+    (item.senderEmail as string | undefined) ??
+    ""
+
+  const category = normalizeCategory(
+    (item.category as string | undefined) ??
+      (item.requestType as string | undefined) ??
+      (item.type as string | undefined),
+  )
+
+  const status = normalizeStatus(
+    (item.status as string | undefined) ??
+      (item.requestStatus as string | undefined),
+  )
+
+  const submittedDate = normalizeDate(
+    item.submittedDate ??
+      item.createdAt ??
+      item.created_at ??
+      item.requestedAt,
+  )
+
+  const subject =
+    (item.subject as string | undefined) ??
+    (item.requestTitle as string | undefined) ??
+    (item.title as string | undefined) ??
+    "-"
+
+  const content =
+    (item.content as string | undefined) ??
+    (item.requestDetails as string | undefined) ??
+    (item.message as string | undefined) ??
+    ""
+
+  const imageUrl = resolveImageUrl(
+    (item.picture as string | undefined) ??
+      (item.imageUrl as string | undefined) ??
+      (item.image_url as string | undefined) ??
+      (item.attachmentUrl as string | undefined),
+  )
+
+  return {
+    id,
+    email,
+    category,
+    status,
+    submittedDate,
+    subject,
+    content,
+    imageUrl,
+  }
+}
+
 function buildRequestQueryParams({
   page,
   pageSize,
@@ -248,10 +339,10 @@ function buildRequestQueryParams({
     params.set("search", searchEmail.trim())
   }
   if (fromDate) {
-    params.set("fromDate", fromDate.toISOString().slice(0, 10))
+    params.set("fromDate", formatDateParam(fromDate))
   }
   if (toDate) {
-    params.set("toDate", toDate.toISOString().slice(0, 10))
+    params.set("toDate", formatDateParam(toDate))
   }
   return params
 }
@@ -262,13 +353,15 @@ function extractPayload(data: unknown) {
     : (data as Record<string, unknown> | null)
 }
 
-function extractMetaTotal(payload: Record<string, unknown> | null, fallback = 0) {
-  const meta = (payload?.meta ?? {}) as { total?: number }
-  return typeof meta.total === "number" ? meta.total : fallback
-}
-
 function RequestsPageContent() {
-  const [requests, setRequests] = useState<RequestRow[]>(initialRequests)
+  const defaultRange = useMemo<DateRangeState>(
+    () => ({
+      from: undefined,
+      to: undefined,
+    }),
+    [],
+  )
+  const [allRequests, setAllRequests] = useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<
@@ -278,8 +371,8 @@ function RequestsPageContent() {
     "all" | RequestStatus
   >("all")
   const [searchEmail, setSearchEmail] = useState("")
-  const [fromDate, setFromDate] = useState<Date | undefined>(undefined)
-  const [toDate, setToDate] = useState<Date | undefined>(undefined)
+  const [fromDate, setFromDate] = useState<Date | undefined>(defaultRange.from)
+  const [toDate, setToDate] = useState<Date | undefined>(defaultRange.to)
   const [categoryFilterInput, setCategoryFilterInput] = useState<
     "all" | RequestCategory
   >("all")
@@ -287,12 +380,17 @@ function RequestsPageContent() {
     "all" | RequestStatus
   >("all")
   const [searchEmailInput, setSearchEmailInput] = useState("")
-  const [fromDateInput, setFromDateInput] = useState<Date | undefined>(undefined)
-  const [toDateInput, setToDateInput] = useState<Date | undefined>(undefined)
+  const [fromDateInput, setFromDateInput] = useState<Date | undefined>(
+    defaultRange.from,
+  )
+  const [toDateInput, setToDateInput] = useState<Date | undefined>(
+    defaultRange.to,
+  )
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE)
+  const [initialRange, setInitialRange] = useState<DateRangeState>(defaultRange)
   const [earliestDateLimit, setEarliestDateLimit] = useState<Date | undefined>(
     undefined,
   )
@@ -302,239 +400,152 @@ function RequestsPageContent() {
   const [summaryCounts, setSummaryCounts] = useState<RequestSummaryCounts>(
     initialSummaryCounts,
   )
-  const showSkeletonRows = isLoading && requests.length === 0
+  const showSkeletonRows = isLoading && allRequests.length === 0
 
   useEffect(() => {
     async function fetchRequests() {
       try {
         setIsLoading(true)
         setLoadError(null)
+        const collected: RequestRow[] = []
+        let page = 1
+        let fetchedTotalPages = 1
+        let nextEarliest: Date | undefined
+        let nextLatest: Date | undefined
 
-        const params = buildRequestQueryParams({
-          page: currentPage,
-          pageSize,
-          categoryFilter,
-          statusFilter,
-          searchEmail,
-          fromDate,
-          toDate,
-        })
-        const query = params.toString()
-        const res = await apiFetch(
-          query
-            ? `/api/admin/v1/user-request/list?${query}`
-            : "/api/admin/v1/user-request/list",
-        )
-        const data = await res.json().catch(() => null)
-        const payload = extractPayload(data)
+        while (page <= fetchedTotalPages) {
+          const params = buildRequestQueryParams({
+            page,
+            pageSize: FETCH_PAGE_SIZE,
+            categoryFilter,
+            statusFilter,
+            searchEmail,
+            fromDate: undefined,
+            toDate: undefined,
+          })
+          const query = params.toString()
+          const res = await apiFetch(`/api/admin/v1/user-request/list?${query}`)
+          const data = await res.json().catch(() => null)
+          const payload = extractPayload(data)
 
-        if (!res.ok) {
-          setLoadError(
-            (payload && (payload.error as string | undefined)) ||
-              (data && (data.error as string | undefined)) ||
-              "โหลดคำร้องไม่สำเร็จ",
-          )
-          return
-        }
-
-        const items = (payload?.requests ??
-          payload?.items ??
-          payload?.data ??
-          []) as Array<
-          Record<string, unknown>
-        >
-        const metaSource = (payload?.meta ?? {}) as Record<string, unknown>
-        const meta = metaSource as {
-          page?: number
-          pageSize?: number
-          total?: number
-          totalPages?: number
-        }
-        const dateLimits = (
-          payload?.dateLimits ??
-          metaSource.dateLimits ??
-          {}
-        ) as {
-          earliest?: string
-          latest?: string
-        }
-        setEarliestDateLimit(parseApiDateLimit(dateLimits.earliest))
-        setLatestDateLimit(parseApiDateLimit(dateLimits.latest))
-        if (typeof meta.total === "number") {
-          setTotalCount(meta.total)
-        } else {
-          setTotalCount(items.length)
-        }
-        if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
-          setTotalPages(meta.totalPages)
-          if (currentPage > meta.totalPages) {
-            setCurrentPage(meta.totalPages)
+          if (!res.ok) {
+            setLoadError(
+              (payload && (payload.error as string | undefined)) ||
+                (data && (data.error as string | undefined)) ||
+                "โหลดคำร้องไม่สำเร็จ",
+            )
+            setAllRequests([])
+            return
           }
-        } else {
-          setTotalPages(1)
+
+          const items = (payload?.requests ??
+            payload?.items ??
+            payload?.data ??
+            []) as Array<Record<string, unknown>>
+          const metaSource = (payload?.meta ?? {}) as Record<string, unknown>
+          const meta = metaSource as {
+            totalPages?: number
+          }
+          const dateLimits = (
+            payload?.dateLimits ??
+            metaSource.dateLimits ??
+            {}
+          ) as {
+            earliest?: string
+            latest?: string
+          }
+
+          const apiEarliest = parseApiDateLimit(dateLimits.earliest)
+          const apiLatest = parseApiDateLimit(dateLimits.latest)
+          if (apiEarliest && (!nextEarliest || apiEarliest < nextEarliest)) {
+            nextEarliest = apiEarliest
+          }
+          if (apiLatest && (!nextLatest || apiLatest > nextLatest)) {
+            nextLatest = apiLatest
+          }
+
+          collected.push(
+            ...items.map((item, index) => mapRequestRow(item, collected.length + index)),
+          )
+
+          if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+            fetchedTotalPages = meta.totalPages
+          } else if (items.length < FETCH_PAGE_SIZE) {
+            fetchedTotalPages = page
+          }
+
+          page += 1
         }
-        if (typeof meta.pageSize === "number" && meta.pageSize > 0) {
-          setPageSize(meta.pageSize)
+
+        setEarliestDateLimit(nextEarliest)
+        setLatestDateLimit(nextLatest)
+        if (
+          !fromDateInput &&
+          !toDateInput &&
+          !fromDate &&
+          !toDate &&
+          nextEarliest &&
+          nextLatest
+        ) {
+          setInitialRange({
+            from: nextEarliest,
+            to: nextLatest,
+          })
+          setFromDate(nextEarliest)
+          setToDate(nextLatest)
+          setFromDateInput(nextEarliest)
+          setToDateInput(nextLatest)
         }
 
-        const mapped = items.map((item, index) => {
-          const rawId =
-            (item.id as string | number | undefined) ??
-            (item.requestId as string | number | undefined) ??
-            (item.request_id as string | number | undefined)
-          const id = rawId ? String(rawId) : `REQ-${index + 1}`
-
-          const userEmail =
-            typeof item.user === "object" && item.user !== null
-              ? (item.user as { email?: string }).email
-              : undefined
-
-          const email =
-            (item.email as string | undefined) ??
-            userEmail ??
-            (item.userEmail as string | undefined) ??
-            (item.senderEmail as string | undefined) ??
-            ""
-
-          const category = normalizeCategory(
-            (item.category as string | undefined) ??
-              (item.requestType as string | undefined) ??
-              (item.type as string | undefined),
-          )
-
-          const status = normalizeStatus(
-            (item.status as string | undefined) ??
-              (item.requestStatus as string | undefined),
-          )
-
-          const submittedDate = normalizeDate(
-            item.submittedDate ??
-              item.createdAt ??
-              item.created_at ??
-              item.requestedAt,
-          )
-
-          const subject =
-            (item.subject as string | undefined) ??
-            (item.requestTitle as string | undefined) ??
-            (item.title as string | undefined) ??
-            "-"
-
-          const content =
-            (item.content as string | undefined) ??
-            (item.requestDetails as string | undefined) ??
-            (item.message as string | undefined) ??
-            ""
-
-          const imageUrl = resolveImageUrl(
-            (item.picture as string | undefined) ??
-              (item.imageUrl as string | undefined) ??
-              (item.image_url as string | undefined) ??
-              (item.attachmentUrl as string | undefined),
-          )
-
-          return {
-            id,
-            email,
-            category,
-            status,
-            submittedDate,
-            subject,
-            content,
-            imageUrl,
-          } satisfies RequestRow
-        })
-
-        setRequests(mapped)
+        setAllRequests(collected)
       } catch {
         setLoadError("เกิดข้อผิดพลาดในการโหลดคำร้อง")
+        setAllRequests([])
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchRequests()
-  }, [
-    categoryFilter,
-    statusFilter,
-    searchEmail,
-    fromDate,
-    toDate,
-    currentPage,
-    pageSize,
-  ])
+    void fetchRequests()
+  }, [categoryFilter, statusFilter, searchEmail])
+
+  const filteredRequests = useMemo(() => {
+    const fromTime = fromDate ? getDateOnlyTime(fromDate) : undefined
+    const toTime = toDate ? getDateOnlyTime(toDate) : undefined
+
+    return allRequests.filter((request) => {
+      const requestDate = parseDateOnly(request.submittedDate)
+      if (!requestDate) return false
+      const requestTime = getDateOnlyTime(requestDate)
+
+      if (fromTime !== undefined && requestTime < fromTime) {
+        return false
+      }
+      if (toTime !== undefined && requestTime > toTime) {
+        return false
+      }
+
+      return true
+    })
+  }, [allRequests, fromDate, toDate])
 
   useEffect(() => {
-    let cancelled = false
+    const nextTotal = filteredRequests.length
+    const nextTotalPages = Math.max(1, Math.ceil(nextTotal / pageSize))
 
-    async function fetchSummaryCounts() {
-      try {
-        const baseFilters = {
-          categoryFilter,
-          searchEmail,
-          fromDate,
-          toDate,
-        }
-
-        const queries = [
-          buildRequestQueryParams({
-            page: 1,
-            pageSize: SUMMARY_PAGE_SIZE,
-            statusFilter: "all",
-            ...baseFilters,
-          }).toString(),
-          buildRequestQueryParams({
-            page: 1,
-            pageSize: SUMMARY_PAGE_SIZE,
-            statusFilter: "PENDING",
-            ...baseFilters,
-          }).toString(),
-          buildRequestQueryParams({
-            page: 1,
-            pageSize: SUMMARY_PAGE_SIZE,
-            statusFilter: "REJECTED",
-            ...baseFilters,
-          }).toString(),
-          buildRequestQueryParams({
-            page: 1,
-            pageSize: SUMMARY_PAGE_SIZE,
-            statusFilter: "DONE",
-            ...baseFilters,
-          }).toString(),
-        ]
-
-        const responses = await Promise.all(
-          queries.map((query) =>
-            apiFetch(`/api/admin/v1/user-request/list?${query}`),
-          ),
-        )
-        const payloads = await Promise.all(
-          responses.map(async (res) => {
-            const data = await res.json().catch(() => null)
-            return res.ok ? extractPayload(data) : null
-          }),
-        )
-
-        if (cancelled) return
-
-        setSummaryCounts({
-          total: extractMetaTotal(payloads[0]),
-          pending: extractMetaTotal(payloads[1]),
-          rejected: extractMetaTotal(payloads[2]),
-          completed: extractMetaTotal(payloads[3]),
-        })
-      } catch {
-        if (cancelled) return
-        setSummaryCounts(initialSummaryCounts)
-      }
+    setTotalCount(nextTotal)
+    setTotalPages(nextTotalPages)
+    if (currentPage > nextTotalPages) {
+      setCurrentPage(nextTotalPages)
     }
 
-    void fetchSummaryCounts()
-
-    return () => {
-      cancelled = true
-    }
-  }, [categoryFilter, searchEmail, fromDate, toDate])
+    setSummaryCounts({
+      total: nextTotal,
+      pending: filteredRequests.filter((request) => request.status === "PENDING").length,
+      rejected: filteredRequests.filter((request) => request.status === "REJECTED").length,
+      completed: filteredRequests.filter((request) => request.status === "DONE").length,
+    })
+  }, [filteredRequests, pageSize, currentPage])
 
   const {
     safePage,
@@ -548,6 +559,10 @@ function RequestsPageContent() {
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
+  const requests = filteredRequests.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize,
+  )
   const fromDateDisplayLabel = fromDateInput
     ? formatPickerDisplayDate(fromDateInput)
     : earliestDateLimit
@@ -569,9 +584,17 @@ function RequestsPageContent() {
     setStatusFilter(nextStatus)
     setStatusFilterInput(nextStatus)
     setSearchEmail(searchEmailInput)
-    setFromDate(fromDateInput)
-    setToDate(toDateInput)
+    setFromDate(fromDateInput ?? initialRange.from)
+    setToDate(toDateInput ?? initialRange.to)
     setCurrentPage(1)
+  }
+
+  function handleFromDateSelect(date: Date | undefined) {
+    setFromDateInput(date ?? initialRange.from)
+  }
+
+  function handleToDateSelect(date: Date | undefined) {
+    setToDateInput(date ?? initialRange.to)
   }
 
   return (
@@ -671,7 +694,7 @@ function RequestsPageContent() {
                         <Calendar
                           mode="single"
                           selected={fromDateInput ?? earliestDateLimit}
-                          onSelect={setFromDateInput}
+                          onSelect={handleFromDateSelect}
                           defaultMonth={fromDateInput ?? earliestDateLimit}
                           startMonth={earliestDateLimit}
                           endMonth={latestDateLimit}
@@ -706,7 +729,7 @@ function RequestsPageContent() {
                         <Calendar
                           mode="single"
                           selected={toDateInput ?? latestDateLimit}
-                          onSelect={setToDateInput}
+                          onSelect={handleToDateSelect}
                           defaultMonth={toDateInput ?? latestDateLimit}
                           startMonth={earliestDateLimit}
                           endMonth={latestDateLimit}
