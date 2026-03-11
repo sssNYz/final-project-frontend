@@ -7,6 +7,7 @@ import { Trash2, User2 } from "lucide-react"
 import Swal from "sweetalert2"
 
 import { apiFetch } from "@/lib/apiClient"
+import { getLoggedInUserEmail } from "@/lib/authUser"
 import { ensureVerifiedAction, showDeleteSuccess } from "@/lib/verify-action"
 
 import { AppSidebar } from "@/components/app-sidebar"
@@ -75,6 +76,7 @@ const FETCH_PAGE_SIZE = 200
 export default function AccountsPage() {
   const { confirm } = useAlert()
   const [accounts, setAccounts] = useState<AdminAccount[]>([])
+  const [currentUserEmail, setCurrentUserEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<"all" | AccountRole>("all")
@@ -176,6 +178,22 @@ export default function AccountsPage() {
     void fetchAccounts()
   }, [])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const sessionEmail = window.sessionStorage
+      .getItem("currentUserEmail")
+      ?.trim()
+      .toLowerCase()
+    const cookieEmail = getLoggedInUserEmail()?.trim().toLowerCase()
+
+    setCurrentUserEmail(sessionEmail || cookieEmail || "")
+  }, [])
+
+  function isCurrentUserAccount(email: string) {
+    return email.trim().toLowerCase() === currentUserEmail
+  }
+
   const filteredAccounts = useMemo(() => {
     const emailQuery = searchEmail.trim().toLowerCase()
     return accounts.filter((account) => {
@@ -225,6 +243,16 @@ export default function AccountsPage() {
     if (!target) return
     // ยืนยันการเปลี่ยนสถานะการใช้งาน
     const nextStatus = !target.active
+    if (!nextStatus && isCurrentUserAccount(target.email)) {
+      const message = "ไม่สามารถปิดการใช้งานบัญชีของตัวเองได้"
+      setLoadError(message)
+      await Swal.fire({
+        icon: "warning",
+        title: "ไม่สามารถดำเนินการได้",
+        text: message,
+      })
+      return
+    }
     const confirmed = await confirm({
       variant: "warning",
       title: "ยืนยันเปลี่ยนสถานะการใช้งาน",
@@ -512,7 +540,12 @@ return (
                           </TableCell>
                         </TableRow>
                       ))
-                    : pagedAccounts.map((account) => (
+                    : pagedAccounts.map((account) => {
+                        const isSelfAccount = isCurrentUserAccount(account.email)
+                        const disableSelfDeactivate =
+                          account.active && isSelfAccount
+
+                        return (
                         <TableRow
                           key={account.userId}
                           className="even:bg-slate-50/70"
@@ -529,12 +562,18 @@ return (
                               onClick={() =>
                                 handleToggleStatus(account.userId)
                               }
+                              disabled={disableSelfDeactivate}
                               className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold shadow-sm transition-colors ${
                                 account.active
                                   ? "border-emerald-500 bg-emerald-500 text-white"
                                   : "border-red-500 bg-red-500 text-white"
-                              }`}
+                              } disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 disabled:text-slate-500`}
                               aria-pressed={account.active}
+                              title={
+                                disableSelfDeactivate
+                                  ? "ไม่สามารถปิดการใช้งานบัญชีของตัวเองได้"
+                                  : undefined
+                              }
                             >
                               <span>
                                 {account.active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
@@ -564,7 +603,8 @@ return (
                             </button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        )
+                      })}
                   {!isLoading && filteredAccounts.length === 0 && (
                     <TableRow>
                       <TableCell
