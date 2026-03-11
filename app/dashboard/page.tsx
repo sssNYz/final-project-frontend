@@ -1,6 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
+import type { Matcher } from "react-day-picker"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Calendar as CalendarIcon, Clock } from "lucide-react"
@@ -30,6 +31,11 @@ type AccountRow = {
   name: string
   profiles: number
   rows: number
+}
+
+type DateRangeState = {
+  from: Date | undefined
+  to: Date | undefined
 }
 // แปลงวันที่เป็นจุดเริ่มต้นของวัน (00:00:00.000 UTC)
 function startOfDay(date: Date) {
@@ -154,9 +160,12 @@ export default function Page() {
     defaultRange.from,
   )
   const [toDate, setToDate] = useState<Date | undefined>(defaultRange.to)
+  const [initialRange, setInitialRange] = useState<DateRangeState>(defaultRange)
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const today = useMemo(() => toUtcDateOnly(new Date()), [])
+  const earliestDateLimit = initialRange.from
+  const latestDateLimit = initialRange.to
   const showError = async (message: string, title = "เกิดข้อผิดพลาด") => {
     await Swal.fire({
       icon: "error",
@@ -231,6 +240,10 @@ export default function Page() {
           items,
         )
         if (range) {
+          setInitialRange({
+            from: range.start,
+            to: range.end,
+          })
           setFromDate(range.start)
           setFromDateInput(range.start)
           setToDate(range.end)
@@ -364,6 +377,14 @@ export default function Page() {
     void deleteLogs(ids)
   }
 
+  function handleFromDateSelect(date: Date | undefined) {
+    setFromDateInput(date ?? initialRange.from)
+  }
+
+  function handleToDateSelect(date: Date | undefined) {
+    setToDateInput(date ?? initialRange.to)
+  }
+
   return (
     <SidebarProvider
       style={
@@ -412,10 +433,19 @@ export default function Page() {
                       <PopoverContent className="p-2" side="bottom">
                         <Calendar
                           mode="single"
-                          selected={fromDateInput}
-                          onSelect={setFromDateInput}
-                          endMonth={today}
-                          disabled={{ after: today }}
+                          selected={fromDateInput ?? earliestDateLimit}
+                          onSelect={handleFromDateSelect}
+                          defaultMonth={fromDateInput ?? earliestDateLimit}
+                          startMonth={earliestDateLimit}
+                          endMonth={latestDateLimit ?? today}
+                          disabled={[
+                            ...(latestDateLimit
+                              ? ([{ after: latestDateLimit }] satisfies Matcher[])
+                              : ([{ after: today }] satisfies Matcher[])),
+                            ...(earliestDateLimit
+                              ? ([{ before: earliestDateLimit }] satisfies Matcher[])
+                              : []),
+                          ]}
                         />
                       </PopoverContent>
                     </Popover>
@@ -447,10 +477,19 @@ export default function Page() {
                       <PopoverContent className="p-2" side="bottom">
                         <Calendar
                           mode="single"
-                          selected={toDateInput}
-                          onSelect={setToDateInput}
-                          endMonth={today}
-                          disabled={{ after: today }}
+                          selected={toDateInput ?? latestDateLimit}
+                          onSelect={handleToDateSelect}
+                          defaultMonth={toDateInput ?? latestDateLimit}
+                          startMonth={earliestDateLimit}
+                          endMonth={latestDateLimit ?? today}
+                          disabled={[
+                            ...(latestDateLimit
+                              ? ([{ after: latestDateLimit }] satisfies Matcher[])
+                              : ([{ after: today }] satisfies Matcher[])),
+                            ...(earliestDateLimit
+                              ? ([{ before: earliestDateLimit }] satisfies Matcher[])
+                              : []),
+                          ]}
                         />
                       </PopoverContent>
                     </Popover>
