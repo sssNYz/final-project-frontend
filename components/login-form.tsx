@@ -55,6 +55,8 @@ export function LoginForm({
         const errorCode = (data?.error as string | undefined) ?? ""
         if (errorCode === "INVALID_CREDENTIALS") {
           setError("รหัสผ่านหรืออีเมลไม่ถูกต้อง")
+        } else if (errorCode === "ACCOUNT_BANNED") {
+          setError("บัญชีของคุณถูกปิดการใช้งาน")
         } else {
           setError(errorCode || "เข้าสู่ระบบไม่สำเร็จ")
         }
