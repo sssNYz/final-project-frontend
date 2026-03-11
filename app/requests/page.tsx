@@ -63,6 +63,13 @@ type RequestRow = {
   imageUrl?: string
 }
 
+type RequestSummaryCounts = {
+  total: number
+  pending: number
+  rejected: number
+  completed: number
+}
+
 const STATUS_LABELS: Record<RequestStatus, string> = {
   PENDING: "รอดำเนินการ",
   REJECTED: "ปฏิเสธ",
@@ -84,8 +91,15 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
 }
 // จำนวนรายการต่อหน้าในตารางคำร้องจากผู้ใช้
 const PAGE_SIZE = 6
+const SUMMARY_PAGE_SIZE = 1
 
 const initialRequests: RequestRow[] = []
+const initialSummaryCounts: RequestSummaryCounts = {
+  total: 0,
+  pending: 0,
+  rejected: 0,
+  completed: 0,
+}
 
 function normalizeStatus(value?: string | null): RequestStatus {
   const normalized = (value ?? "").toLowerCase()
@@ -204,6 +218,55 @@ function parseApiDateLimit(value: unknown): Date | undefined {
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
 }
 
+function buildRequestQueryParams({
+  page,
+  pageSize,
+  categoryFilter,
+  statusFilter,
+  searchEmail,
+  fromDate,
+  toDate,
+}: {
+  page: number
+  pageSize: number
+  categoryFilter: "all" | RequestCategory
+  statusFilter: "all" | RequestStatus
+  searchEmail: string
+  fromDate?: Date
+  toDate?: Date
+}) {
+  const params = new URLSearchParams()
+  params.set("page", String(page))
+  params.set("pageSize", String(pageSize))
+  if (categoryFilter !== "all") {
+    params.set("type", categoryFilter)
+  }
+  if (statusFilter !== "all") {
+    params.set("status", statusFilter)
+  }
+  if (searchEmail.trim()) {
+    params.set("search", searchEmail.trim())
+  }
+  if (fromDate) {
+    params.set("fromDate", fromDate.toISOString().slice(0, 10))
+  }
+  if (toDate) {
+    params.set("toDate", toDate.toISOString().slice(0, 10))
+  }
+  return params
+}
+
+function extractPayload(data: unknown) {
+  return data && typeof data === "object" && "body" in data
+    ? (data.body as Record<string, unknown>)
+    : (data as Record<string, unknown> | null)
+}
+
+function extractMetaTotal(payload: Record<string, unknown> | null, fallback = 0) {
+  const meta = (payload?.meta ?? {}) as { total?: number }
+  return typeof meta.total === "number" ? meta.total : fallback
+}
+
 function RequestsPageContent() {
   const [requests, setRequests] = useState<RequestRow[]>(initialRequests)
   const [isLoading, setIsLoading] = useState(false)
@@ -236,6 +299,9 @@ function RequestsPageContent() {
   const [latestDateLimit, setLatestDateLimit] = useState<Date | undefined>(
     undefined,
   )
+  const [summaryCounts, setSummaryCounts] = useState<RequestSummaryCounts>(
+    initialSummaryCounts,
+  )
   const showSkeletonRows = isLoading && requests.length === 0
 
   useEffect(() => {
@@ -244,24 +310,15 @@ function RequestsPageContent() {
         setIsLoading(true)
         setLoadError(null)
 
-        const params = new URLSearchParams()
-        params.set("page", String(currentPage))
-        params.set("pageSize", String(pageSize))
-        if (categoryFilter !== "all") {
-          params.set("type", categoryFilter)
-        }
-        if (statusFilter !== "all") {
-          params.set("status", statusFilter)
-        }
-        if (searchEmail.trim()) {
-          params.set("search", searchEmail.trim())
-        }
-        if (fromDate) {
-          params.set("fromDate", fromDate.toISOString().slice(0, 10))
-        }
-        if (toDate) {
-          params.set("toDate", toDate.toISOString().slice(0, 10))
-        }
+        const params = buildRequestQueryParams({
+          page: currentPage,
+          pageSize,
+          categoryFilter,
+          statusFilter,
+          searchEmail,
+          fromDate,
+          toDate,
+        })
         const query = params.toString()
         const res = await apiFetch(
           query
@@ -269,10 +326,7 @@ function RequestsPageContent() {
             : "/api/admin/v1/user-request/list",
         )
         const data = await res.json().catch(() => null)
-        const payload =
-          data && typeof data === "object" && "body" in data
-            ? (data.body as Record<string, unknown>)
-            : (data as Record<string, unknown> | null)
+        const payload = extractPayload(data)
 
         if (!res.ok) {
           setLoadError(
@@ -410,31 +464,87 @@ function RequestsPageContent() {
     pageSize,
   ])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchSummaryCounts() {
+      try {
+        const baseFilters = {
+          categoryFilter,
+          searchEmail,
+          fromDate,
+          toDate,
+        }
+
+        const queries = [
+          buildRequestQueryParams({
+            page: 1,
+            pageSize: SUMMARY_PAGE_SIZE,
+            statusFilter: "all",
+            ...baseFilters,
+          }).toString(),
+          buildRequestQueryParams({
+            page: 1,
+            pageSize: SUMMARY_PAGE_SIZE,
+            statusFilter: "PENDING",
+            ...baseFilters,
+          }).toString(),
+          buildRequestQueryParams({
+            page: 1,
+            pageSize: SUMMARY_PAGE_SIZE,
+            statusFilter: "REJECTED",
+            ...baseFilters,
+          }).toString(),
+          buildRequestQueryParams({
+            page: 1,
+            pageSize: SUMMARY_PAGE_SIZE,
+            statusFilter: "DONE",
+            ...baseFilters,
+          }).toString(),
+        ]
+
+        const responses = await Promise.all(
+          queries.map((query) =>
+            apiFetch(`/api/admin/v1/user-request/list?${query}`),
+          ),
+        )
+        const payloads = await Promise.all(
+          responses.map(async (res) => {
+            const data = await res.json().catch(() => null)
+            return res.ok ? extractPayload(data) : null
+          }),
+        )
+
+        if (cancelled) return
+
+        setSummaryCounts({
+          total: extractMetaTotal(payloads[0]),
+          pending: extractMetaTotal(payloads[1]),
+          rejected: extractMetaTotal(payloads[2]),
+          completed: extractMetaTotal(payloads[3]),
+        })
+      } catch {
+        if (cancelled) return
+        setSummaryCounts(initialSummaryCounts)
+      }
+    }
+
+    void fetchSummaryCounts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [categoryFilter, searchEmail, fromDate, toDate])
+
   const {
     safePage,
-    pendingCount,
-    rejectedCount,
-    completedCount,
   } = useMemo(() => {
-    const pending = requests.filter(
-      (item) => item.status === "PENDING",
-    ).length
-    const rejected = requests.filter(
-      (item) => item.status === "REJECTED",
-    ).length
-    const completed = requests.filter(
-      (item) => item.status === "DONE",
-    ).length
-
     const page = Math.min(currentPage, totalPages)
 
     return {
       safePage: page,
-      pendingCount: pending,
-      rejectedCount: rejected,
-      completedCount: completed,
     }
-  }, [requests, currentPage, totalPages])
+  }, [currentPage, totalPages])
 
   const canGoPrev = safePage > 1
   const canGoNext = safePage < totalPages
@@ -452,6 +562,16 @@ function RequestsPageContent() {
   function goToPage(page: number) {
     if (page < 1 || page > totalPages) return
     setCurrentPage(page)
+  }
+
+  function applyFilters(nextStatus = statusFilterInput) {
+    setCategoryFilter(categoryFilterInput)
+    setStatusFilter(nextStatus)
+    setStatusFilterInput(nextStatus)
+    setSearchEmail(searchEmailInput)
+    setFromDate(fromDateInput)
+    setToDate(toDateInput)
+    setCurrentPage(1)
   }
 
   return (
@@ -550,7 +670,7 @@ function RequestsPageContent() {
                       <PopoverContent className="p-2" side="bottom">
                         <Calendar
                           mode="single"
-                          selected={fromDateInput}
+                          selected={fromDateInput ?? earliestDateLimit}
                           onSelect={setFromDateInput}
                           defaultMonth={fromDateInput ?? earliestDateLimit}
                           startMonth={earliestDateLimit}
@@ -585,7 +705,7 @@ function RequestsPageContent() {
                       <PopoverContent className="p-2" side="bottom">
                         <Calendar
                           mode="single"
-                          selected={toDateInput}
+                          selected={toDateInput ?? latestDateLimit}
                           onSelect={setToDateInput}
                           defaultMonth={toDateInput ?? latestDateLimit}
                           startMonth={earliestDateLimit}
@@ -606,12 +726,7 @@ function RequestsPageContent() {
                 <div className="flex flex-col gap-1">
                     <SearchButton
                       onClick={() => {
-                        setCategoryFilter(categoryFilterInput)
-                        setStatusFilter(statusFilterInput)
-                        setSearchEmail(searchEmailInput)
-                        setFromDate(fromDateInput)
-                        setToDate(toDateInput)
-                        setCurrentPage(1)
+                        applyFilters()
                       }}
                     />
                 </div>
@@ -623,9 +738,9 @@ function RequestsPageContent() {
                   <button
                     type="button"
                     onClick={() => {
-                      setStatusFilterInput("all")
+                      applyFilters("all")
                     }}
-                    aria-pressed={statusFilterInput === "all"}
+                    aria-pressed={statusFilter === "all"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "all"
                         ? "border-slate-800 bg-slate-800 text-white shadow-sm"
@@ -633,16 +748,16 @@ function RequestsPageContent() {
                     }`}
                   >
                     <span>ทั้งหมด</span>
-                    <span className="text-sm font-bold">{totalCount}</span>
+                    <span className="text-sm font-bold">{summaryCounts.total}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilterInput === "PENDING" ? "all" : "PENDING"
-                      setStatusFilterInput(next)
+                        statusFilter === "PENDING" ? "all" : "PENDING"
+                      applyFilters(next)
                     }}
-                    aria-pressed={statusFilterInput === "PENDING"}
+                    aria-pressed={statusFilter === "PENDING"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "PENDING"
                         ? "border-orange-700 bg-orange-600 text-white shadow-sm"
@@ -650,16 +765,16 @@ function RequestsPageContent() {
                     }`}
                   >
                     <span>รอดำเนินการ</span>
-                    <span className="text-sm font-bold">{pendingCount}</span>
+                    <span className="text-sm font-bold">{summaryCounts.pending}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilterInput === "REJECTED" ? "all" : "REJECTED"
-                      setStatusFilterInput(next)
+                        statusFilter === "REJECTED" ? "all" : "REJECTED"
+                      applyFilters(next)
                     }}
-                    aria-pressed={statusFilterInput === "REJECTED"}
+                    aria-pressed={statusFilter === "REJECTED"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "REJECTED"
                         ? "border-red-700 bg-red-600 text-white shadow-sm"
@@ -667,16 +782,16 @@ function RequestsPageContent() {
                     }`}
                   >
                     <span>ปฏิเสธ</span>
-                    <span className="text-sm font-bold">{rejectedCount}</span>
+                    <span className="text-sm font-bold">{summaryCounts.rejected}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       const next =
-                        statusFilterInput === "DONE" ? "all" : "DONE"
-                      setStatusFilterInput(next)
+                        statusFilter === "DONE" ? "all" : "DONE"
+                      applyFilters(next)
                     }}
-                    aria-pressed={statusFilterInput === "DONE"}
+                    aria-pressed={statusFilter === "DONE"}
                     className={`flex flex-1 min-w-[200px] max-w-sm items-center justify-between gap-2 rounded-xl border px-5 py-3 text-xs transition ${
                       statusFilter === "DONE"
                         ? "border-emerald-800 bg-emerald-700 text-white shadow-sm"
@@ -684,7 +799,7 @@ function RequestsPageContent() {
                     }`}
                   >
                     <span>ดำเนินการแล้ว</span>
-                    <span className="text-sm font-bold">{completedCount}</span>
+                    <span className="text-sm font-bold">{summaryCounts.completed}</span>
                   </button>
                 </div>
               </div>
