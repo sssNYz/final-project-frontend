@@ -62,6 +62,8 @@ const USAGE_LABELS: Record<UsageType, string> = {
 }
 
 const PAGE_SIZE = 8
+const ALLOWED_MEDICINE_IMAGE_TYPES = new Set(["image/png", "image/jpeg"])
+const ALLOWED_MEDICINE_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"]
 
 type FormState = {
   genericNameTh: string
@@ -1068,7 +1070,7 @@ export default function MedicinesPage() {
                             </div>
                             <Input
                               type="file"
-                              accept="image/png"
+                              accept="image/png,image/jpeg,.png,.jpg,.jpeg"
                               ref={fileInputRef}
                               id="medicine-image"
                               onChange={(event) => {
@@ -1079,13 +1081,19 @@ export default function MedicinesPage() {
                                 }
 
                                 const file = files[0]
+                                const lowerFileName = file.name.toLowerCase()
+                                const isAcceptedType =
+                                  ALLOWED_MEDICINE_IMAGE_TYPES.has(file.type) ||
+                                  ALLOWED_MEDICINE_IMAGE_EXTENSIONS.some((extension) =>
+                                    lowerFileName.endsWith(extension),
+                                  )
 
-                                if (file.type !== "image/png") {
+                                if (!isAcceptedType) {
                                   void alert({
                                     variant: "warning",
                                     title: "ไฟล์ไม่ถูกต้อง",
                                     message:
-                                      "กรุณาเลือกรูปภาพนามสกุล PNG เท่านั้น",
+                                      "กรุณาเลือกรูปภาพนามสกุล PNG, JPG หรือ JPEG เท่านั้น",
                                   })
                                   event.target.value = ""
                                   setSelectedFileName(null)
@@ -1117,7 +1125,7 @@ export default function MedicinesPage() {
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400">
-                              รองรับเฉพาะไฟล์รูปภาพนามสกุล PNG
+                              รองรับไฟล์รูปภาพนามสกุล PNG, JPG และ JPEG
                             </p>
                           </div>
                         </div>
