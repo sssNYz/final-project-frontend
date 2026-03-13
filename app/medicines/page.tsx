@@ -824,28 +824,6 @@ export default function MedicinesPage() {
         return
       }
 
-      const existingMedicine =
-        !isCreate && currentEditingId && currentEditingId !== "new"
-          ? medicines.find((medicine) => medicine.id === currentEditingId)
-          : null
-
-      const mapped = mapApiMedicine(apiMedicine, {
-        ...data,
-        imageUrl: existingMedicine?.imageUrl,
-        status: existingMedicine?.status ?? null,
-      })
-
-      if (isCreate) {
-        setMedicines((previous) => [mapped, ...previous])
-        setCurrentPage(1)
-      } else if (currentEditingId && currentEditingId !== "new") {
-        setMedicines((previous) =>
-          previous.map((medicine) =>
-            medicine.id === currentEditingId ? mapped : medicine,
-          ),
-        )
-      }
-
       setEditingId(null)
       setFormValues(emptyForm)
       setImagePreview(null)
@@ -853,6 +831,13 @@ export default function MedicinesPage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
+
+      await reloadMedicines({
+        usage: usageFilter,
+        search: searchTerm,
+        page: isCreate ? 1 : currentPage,
+        size: pageSize,
+      })
 
       notifySuccess(
         isCreate ? "เพิ่มข้อมูลยาเรียบร้อยแล้ว" : "แก้ไขข้อมูลยาเรียบร้อยแล้ว",

@@ -55,6 +55,7 @@ const CATEGORY_LABELS: Record<RequestCategory, string> = {
   OTHER: "อื่นๆ",
 }
 
+const FETCH_PAGE_SIZE = 200
 const initialRequests: RequestRow[] = []
 
 function normalizeStatus(value?: string | null): RequestStatus {
@@ -160,6 +161,87 @@ function formatDisplayDate(isoDate: string) {
   return `${day} ${monthName} ${buddhistYear}`
 }
 
+function mapRequestRow(item: Record<string, unknown>, index: number): RequestRow {
+  const rawId =
+    (item.id as string | number | undefined) ??
+    (item.requestId as string | number | undefined) ??
+    (item.request_id as string | number | undefined)
+  const id = rawId ? String(rawId) : `REQ-${index + 1}`
+
+  const userEmail =
+    typeof item.user === "object" && item.user !== null
+      ? (item.user as { email?: string }).email
+      : undefined
+
+  const email =
+    (item.email as string | undefined) ??
+    userEmail ??
+    (item.userEmail as string | undefined) ??
+    (item.senderEmail as string | undefined) ??
+    ""
+
+  const category = normalizeCategory(
+    (item.category as string | undefined) ??
+      (item.requestType as string | undefined) ??
+      (item.type as string | undefined),
+  )
+
+  const status = normalizeStatus(
+    (item.status as string | undefined) ??
+      (item.requestStatus as string | undefined),
+  )
+
+  const submittedDate = normalizeDate(
+    item.submittedDate ??
+      item.createdAt ??
+      item.created_at ??
+      item.requestedAt,
+  )
+
+  const subject =
+    (item.subject as string | undefined) ??
+    (item.requestTitle as string | undefined) ??
+    (item.title as string | undefined) ??
+    "-"
+
+  const content =
+    (item.content as string | undefined) ??
+    (item.requestDetails as string | undefined) ??
+    (item.message as string | undefined) ??
+    ""
+
+  const imageUrl = resolveImageUrl(
+    (item.picture as string | undefined) ??
+      (item.imageUrl as string | undefined) ??
+      (item.image_url as string | undefined) ??
+      (item.attachmentUrl as string | undefined),
+  )
+
+  return {
+    id,
+    email,
+    category,
+    status,
+    submittedDate,
+    subject,
+    content,
+    imageUrl,
+  }
+}
+
+function buildRequestQueryParams(page: number, pageSize: number) {
+  const params = new URLSearchParams()
+  params.set("page", String(page))
+  params.set("pageSize", String(pageSize))
+  return params
+}
+
+function extractPayload(data: unknown) {
+  return data && typeof data === "object" && "body" in data
+    ? (data.body as Record<string, unknown>)
+    : (data as Record<string, unknown> | null)
+}
+
 function RequestDetailPageContent() {
   const searchParams = useSearchParams()
   const [requests, setRequests] = useState<RequestRow[]>(initialRequests)
@@ -167,97 +249,67 @@ function RequestDetailPageContent() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
   const { alert, confirm } = useAlert()
+  const requestIdFromQuery = useMemo(() => {
+    const value = searchParams.get("requestId")
+    return value ? value.trim() : ""
+  }, [searchParams])
 
   useEffect(() => {
     async function fetchRequests() {
       try {
         setIsLoading(true)
         setLoadError(null)
+        const collected: RequestRow[] = []
+        let page = 1
+        let fetchedTotalPages = 1
 
-        const res = await apiFetch("/api/admin/v1/user-request/list")
-        const data = await res.json().catch(() => null)
+        while (page <= fetchedTotalPages) {
+          const query = buildRequestQueryParams(page, FETCH_PAGE_SIZE).toString()
+          const res = await apiFetch(`/api/admin/v1/user-request/list?${query}`)
+          const data = await res.json().catch(() => null)
+          const payload = extractPayload(data)
 
-        if (!res.ok) {
-          setLoadError(
-            (data && (data.error as string | undefined)) ||
-              "โหลดคำร้องไม่สำเร็จ",
+          if (!res.ok) {
+            setLoadError(
+              (payload && (payload.error as string | undefined)) ||
+                (data && (data.error as string | undefined)) ||
+                "โหลดคำร้องไม่สำเร็จ",
+            )
+            return
+          }
+
+          const items = (payload?.requests ??
+            payload?.items ??
+            payload?.data ??
+            []) as Array<Record<string, unknown>>
+          const metaSource = (payload?.meta ?? {}) as Record<string, unknown>
+          const meta = metaSource as {
+            totalPages?: number
+          }
+
+          collected.push(
+            ...items.map((item, index) => mapRequestRow(item, collected.length + index)),
           )
-          return
+
+          if (requestIdFromQuery) {
+            const hasTargetRequest = collected.some(
+              (request) => request.id === requestIdFromQuery,
+            )
+            if (hasTargetRequest) {
+              break
+            }
+          }
+
+          if (typeof meta.totalPages === "number" && meta.totalPages > 0) {
+            fetchedTotalPages = meta.totalPages
+          } else if (items.length < FETCH_PAGE_SIZE) {
+            fetchedTotalPages = page
+          }
+
+          page += 1
         }
 
-        const items = (data?.requests ?? data?.items ?? data?.data ?? []) as Array<
-          Record<string, unknown>
-        >
-
-        const mapped = items.map((item, index) => {
-          const rawId =
-            (item.id as string | number | undefined) ??
-            (item.requestId as string | number | undefined) ??
-            (item.request_id as string | number | undefined)
-          const id = rawId ? String(rawId) : `REQ-${index + 1}`
-
-          const userEmail =
-            typeof item.user === "object" && item.user !== null
-              ? (item.user as { email?: string }).email
-              : undefined
-
-          const email =
-            (item.email as string | undefined) ??
-            userEmail ??
-            (item.userEmail as string | undefined) ??
-            (item.senderEmail as string | undefined) ??
-            ""
-
-          const category = normalizeCategory(
-            (item.category as string | undefined) ??
-              (item.requestType as string | undefined) ??
-              (item.type as string | undefined),
-          )
-
-          const status = normalizeStatus(
-            (item.status as string | undefined) ??
-              (item.requestStatus as string | undefined),
-          )
-
-          const submittedDate = normalizeDate(
-            item.submittedDate ??
-              item.createdAt ??
-              item.created_at ??
-              item.requestedAt,
-          )
-
-          const subject =
-            (item.subject as string | undefined) ??
-            (item.requestTitle as string | undefined) ??
-            (item.title as string | undefined) ??
-            "-"
-
-          const content =
-            (item.content as string | undefined) ??
-            (item.requestDetails as string | undefined) ??
-            (item.message as string | undefined) ??
-            ""
-
-          const imageUrl = resolveImageUrl(
-            (item.picture as string | undefined) ??
-              (item.imageUrl as string | undefined) ??
-              (item.image_url as string | undefined) ??
-              (item.attachmentUrl as string | undefined),
-          )
-
-          return {
-            id,
-            email,
-            category,
-            status,
-            submittedDate,
-            subject,
-            content,
-            imageUrl,
-          } satisfies RequestRow
-        })
-
-        setRequests(mapped)
+        setRequests(collected)
       } catch {
         setLoadError("เกิดข้อผิดพลาดในการโหลดคำร้อง")
       } finally {
@@ -265,13 +317,8 @@ function RequestDetailPageContent() {
       }
     }
 
-    fetchRequests()
-  }, [])
-
-  const requestIdFromQuery = useMemo(() => {
-    const value = searchParams.get("requestId")
-    return value ? value.trim() : ""
-  }, [searchParams])
+    void fetchRequests()
+  }, [requestIdFromQuery])
 
   const detailRequest = useMemo(() => {
     if (!requestIdFromQuery) return null

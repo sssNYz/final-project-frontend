@@ -40,11 +40,13 @@ export function LoginForm({
 
     try {
       setIsLoading(true)
+      const timezone =
+        Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC"
 // เรียก API เพื่อขอล็อกอิน
       const res = await apiFetch("/api/auth/v2/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, timezone }),
         skipAuth: true,
         skipAuthRedirect: true,
       })
