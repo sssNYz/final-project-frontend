@@ -224,7 +224,7 @@ export function ForgotPasswordForm({
           </CardTitle>
           <p className="text-sm text-white/70">
             {!isResetFlow
-              ? "กรอกอีเมลเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่"
+              ? "กรอกอีเมลเพื่อรับลิงก์สำหรับรีเซ็ตรหัสผ่านใหม่ อีเมลอาจถูกส่งไปที่ช่องจดหมายขยะ"
               : "กรอกรหัสผ่านใหม่ที่ต้องการใช้"}
           </p>      
         </CardHeader>
