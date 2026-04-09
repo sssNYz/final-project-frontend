@@ -225,6 +225,35 @@ export default function MedicinesPage() {
     void alert({ variant: "warning", title, message })
   }
 
+  const getDeleteMedicineErrorMessage = (payload: unknown) => {
+    if (!payload || typeof payload !== "object") {
+      return "ลบข้อมูลยาไม่สำเร็จ"
+    }
+
+    const data = payload as Record<string, unknown>
+    const rawError = String(data.error ?? "").trim().toLowerCase()
+    const rawMessage = String(data.message ?? "").trim().toLowerCase()
+    const rawDetail = String(data.detail ?? "").trim().toLowerCase()
+    const merged = `${rawError} ${rawMessage} ${rawDetail}`.trim()
+
+    if (
+      rawError === "cannot delete medicine" ||
+      merged.includes("cannot delete medicine") ||
+      merged.includes("medicine in use") ||
+      merged.includes("being used") ||
+      merged.includes("used by")
+    ) {
+      return "ไม่สามารถลบยานี้ได้ เนื่องจากยาถูกใช้งานอยู่"
+    }
+
+    return (
+      (data.error as string | undefined) ||
+      (data.message as string | undefined) ||
+      (data.detail as string | undefined) ||
+      "ลบข้อมูลยาไม่สำเร็จ"
+    )
+  }
+
   // โหลดสถานะการใช้งานของยาทั้งหมด
   async function loadAllStatuses(
     ids: string[],
@@ -873,10 +902,7 @@ export default function MedicinesPage() {
 
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        notifyError(
-          (payload && (payload.error as string | undefined)) ||
-          "ลบข้อมูลยาไม่สำเร็จ",
-        )
+        notifyError(getDeleteMedicineErrorMessage(payload))
         return
       }
 

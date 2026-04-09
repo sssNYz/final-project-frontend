@@ -26,6 +26,8 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 
+const OTP_COOLDOWN_SECONDS = 300
+
 // ฟอร์มกรอกรหัส OTP สำหรับยืนยันตัวตน
 export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
   const searchParams = useSearchParams()
@@ -40,7 +42,34 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
   const [notice, setNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
-  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendCooldown, setResendCooldown] = useState(OTP_COOLDOWN_SECONDS)
+
+  function getVerifyErrorMessage(data: unknown) {
+    if (!data || typeof data !== "object") {
+      return "ยืนยันรหัสไม่สำเร็จ"
+    }
+
+    const payload = data as Record<string, unknown>
+    const rawError = String(payload.error ?? "").trim().toLowerCase()
+    const rawMessage = String(payload.message ?? "").trim().toLowerCase()
+    const rawDetail = String(payload.detail ?? "").trim().toLowerCase()
+    const merged = `${rawError} ${rawMessage} ${rawDetail}`.trim()
+
+    if (
+      rawError === "invalid_otp" ||
+      merged.includes("invalid_otp") ||
+      merged.includes("invalid otp")
+    ) {
+      return "OTP หมดอายุ"
+    }
+
+    return (
+      (payload.error as string | undefined) ||
+      (payload.message as string | undefined) ||
+      (payload.detail as string | undefined) ||
+      "ยืนยันรหัสไม่สำเร็จ"
+    )
+  }
 
   useEffect(() => {
     if (!email) {
@@ -91,7 +120,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setError(data?.error || "ยืนยันรหัสไม่สำเร็จ")
+        setError(getVerifyErrorMessage(data))
         return
       }
       if (!isAdminFlow) {
@@ -153,6 +182,10 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         const errorCode = String(data?.error ?? "")
           .toLowerCase()
           .trim()
+        if (errorCode === "otp_cooldown") {
+          setError("กรุณารอ 5 นาที ก่อนขอ OTP ใหม่อีกครั้ง")
+          return
+        }
         const errorMessage =
           errorCode === "email_exists"
             ? "อีเมลนี้มีอยู่แล้วในระบบ"
@@ -161,7 +194,7 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
         return
       }
       setNotice("ส่งรหัสยืนยันใหม่แล้ว โปรดตรวจสอบอีเมล")
-      setResendCooldown(60)
+      setResendCooldown(OTP_COOLDOWN_SECONDS)
     } catch {
       setError("เกิดข้อผิดพลาดในการส่งรหัสยืนยันอีกครั้ง")
     } finally {
@@ -227,11 +260,11 @@ export function OTPForm({ className, ...props }: React.ComponentProps<"div">) {
                         ? `ส่งอีกครั้งได้ใน ${resendCooldown} วินาที`
                         : "ส่งอีกครั้ง"}
                   </button>
-                  {resendCooldown > 0 && (
+                  {/* {resendCooldown > 0 && (
                     <span className="mt-1 block text-[11px] text-white/50">
                       สามารถส่งรหัสใหม่ได้อีกครั้งใน {resendCooldown} วินาที
                     </span>
-                  )}
+                  )} */}
                 </FieldDescription>
               </Field>
 
